@@ -73,10 +73,14 @@ public:
 
         for (int i = 0; i < 4; i++)
         {
-            glUseProgram(programs[i]);
-            glUniform3f(glGetUniformLocation(programs[i], "v3LightPos"), 0.0f, 0.0f, 1.0f);
-            glUniform3f(glGetUniformLocation(programs[i], "v3InvWavelength"), 1.0f / powf(0.650f, 4.0f), 1.0f / powf(0.570f, 4.0f), 1.0f / powf(0.475f, 4.0f));
-            glUniform1f(glGetUniformLocation(programs[i], "fInnerRadius"), InnerRadius);
+            //glUseProgram(programs[i]);
+            programs[i].enable(ctx);
+            //glUniform3f(glGetUniformLocation(programs[i], "v3LightPos"), 0.0f, 0.0f, 1.0f);
+            programs[i].set_uniform(ctx, "v3LightPos", std::vector<float>({ 0.0f, 0.0f, 1.0f }));
+            //glUniform3f(glGetUniformLocation(programs[i], "v3InvWavelength"), 1.0f / powf(0.650f, 4.0f), 1.0f / powf(0.570f, 4.0f), 1.0f / powf(0.475f, 4.0f));
+            programs[i].set_uniform(ctx, "v3InvWavelength", std::vector<float>({ 1.0f / powf(0.650f, 4.0f), 1.0f / powf(0.570f, 4.0f), 1.0f / powf(0.475f, 4.0f) }));
+            //glUniform1f(glGetUniformLocation(programs[i], "fInnerRadius"), InnerRadius);
+            programs[i].set_uniform(ctx, "fInnerRadius", InnerRadius);
             glUniform1f(glGetUniformLocation(programs[i], "fInnerRadius2"), InnerRadius * InnerRadius);
             glUniform1f(glGetUniformLocation(programs[i], "fOuterRadius"), OuterRadius);
             glUniform1f(glGetUniformLocation(programs[i], "fOuterRadius2"), OuterRadius * OuterRadius);
