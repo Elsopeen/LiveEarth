@@ -39,8 +39,8 @@ protected:
 
 	
 	// store the scene as colored boxes
-	std::vector<box3> boxes;
-	std::vector<rgb> box_colors;
+	/*std::vector<box3> boxes;
+	std::vector<rgb> box_colors;*/
 
 	// rendering styles
 	cgv::render::box_render_style style;
@@ -145,11 +145,11 @@ public:
 	/// register on device change events
 	void on_device_change(void* kit_handle, bool attach);
 	/// construct boxes that represent a table of dimensions tw,td,th and leg width tW
-	void construct_table(float tw, float td, float th, float tW);
+	//void construct_table(float tw, float td, float th, float tW);
 	/// construct boxes that represent a room of dimensions w,d,h and wall width W
-	void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
+	//void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
 	/// construct boxes for environment
-	void construct_environment(float s, float ew, float ed, float w, float d, float h);
+	//void construct_environment(float s, float ew, float ed, float w, float d, float h);
 	/// construct boxes that represent a table of dimensions tw,td,th and leg width tW
 	//void construct_movable_boxes(float tw, float td, float th, float tW, size_t nr);
 	/// construct a scene with a table

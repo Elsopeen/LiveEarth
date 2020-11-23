@@ -147,7 +147,7 @@ void vr_test::on_device_change(void* kit_handle, bool attach)
 }
 
 /// construct boxes that represent a table of dimensions tw,td,th and leg width tW
-void vr_test::construct_table(float tw, float td, float th, float tW) {
+/*void vr_test::construct_table(float tw, float td, float th, float tW) {
 	// construct table
 	rgb table_clr(0.3f, 0.2f, 0.0f);
 	boxes.push_back(box3(
@@ -163,10 +163,10 @@ void vr_test::construct_table(float tw, float td, float th, float tW) {
 	box_colors.push_back(table_clr);
 	box_colors.push_back(table_clr);
 	box_colors.push_back(table_clr);
-}
+}*/
 
 /// construct boxes that represent a room of dimensions w,d,h and wall width W
-void vr_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
+/*void vr_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
 	// construct floor
 	boxes.push_back(box3(vec3(-0.5f*w, -W, -0.5f*d), vec3(0.5f*w, 0, 0.5f*d)));
 	box_colors.push_back(rgb(0.2f, 0.2f, 0.2f));
@@ -186,10 +186,10 @@ void vr_test::construct_room(float w, float d, float h, float W, bool walls, boo
 		boxes.push_back(box3(vec3(-0.5f*w - W, h, -0.5f*d - W), vec3(0.5f*w + W, h + W, 0.5f*d + W)));
 		box_colors.push_back(rgb(0.5f, 0.5f, 0.8f));
 	}
-}
+}*/
 
 /// construct boxes for environment
-void vr_test::construct_environment(float s, float ew, float ed, float w, float d, float h) {
+/*void vr_test::construct_environment(float s, float ew, float ed, float w, float d, float h) {
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> distribution(0, 1);
 	unsigned n = unsigned(ew / s);
@@ -209,10 +209,10 @@ void vr_test::construct_environment(float s, float ew, float ed, float w, float 
 			/*box_colors.push_back(
 				rgb(0.3f*distribution(generator) + 0.3f,
 					0.3f*distribution(generator) + 0.2f,
-					0.2f*distribution(generator) + 0.1f));*/
+					0.2f*distribution(generator) + 0.1f));*\/
 		}
 	}
-}
+}*/
 
 /// construct boxes that can be moved around
 /*void vr_test::construct_movable_boxes(float tw, float td, float th, float tW, size_t nr) {
@@ -801,10 +801,10 @@ void vr_test::draw(cgv::render::context& ctx)
 	renderer.disable(ctx);*/
 
 	// draw static boxes
-	renderer.set_render_style(style);
+	/*renderer.set_render_style(style);
 	renderer.set_box_array(ctx, boxes);
 	renderer.set_color_array(ctx, box_colors);
-	renderer.render(ctx, 0, boxes.size());
+	renderer.render(ctx, 0, boxes.size());*/
 
 
 	// draw intersection points
