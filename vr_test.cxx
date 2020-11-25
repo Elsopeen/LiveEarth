@@ -781,7 +781,18 @@ void vr_test::draw(cgv::render::context& ctx)
 		}
 	}
 	cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
-
+	
+	//Added a box (probably to try the renderer stuff)
+	std::vector<box3> box;
+	box.push_back(box3(vec3(-0.5f, -1, -0.5f), vec3(0.5f, 0, 0.5f)));
+	std::vector<rgb> box_col;
+	box_col.push_back(rgb(0.2f, 0.2f, 0.2f));
+	renderer.set_box_array(ctx, box);
+	renderer.set_color_array(ctx, box_col);
+	if (renderer.validate_and_enable(ctx)) {
+		renderer.draw(ctx, 0, box.size());
+	}
+	renderer.disable(ctx);
 	// draw dynamic boxes 
 	/*renderer.set_render_style(movable_style);
 	renderer.set_box_array(ctx, movable_boxes);
