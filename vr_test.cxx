@@ -511,6 +511,25 @@ bool vr_test::init(cgv::render::context& ctx)
 		}
 	}
 
+	cgv::media::mesh::simple_mesh<> earth_sphere;
+
+	if (earth_sphere.read("../../../src/models/sphere_360_cuts.obj")) {
+		earth_info.construct(ctx, earth_sphere);
+		earth_info.bind(ctx, ctx.ref_surface_shader_program(true), true);
+		auto& mats = earth_info.get_materials();
+		if (mats.size() > 0) {
+			//setup texture paths
+			int di = mats[0]->add_image_file("../../../src/images/earthmap.jpg");
+			
+			//ensure the textures are loaded
+			mats[0]->ensure_textures(ctx);
+
+			//set texture indices
+			mats[0]->set_diffuse_index(di);
+		}
+	}
+
+
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
 	cgv::render::ref_rounded_cone_renderer(ctx, 1);
@@ -780,21 +799,34 @@ void vr_test::draw(cgv::render::context& ctx)
 			}
 		}
 	}
-	cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
+
+	if (!earth_info.is_constructed())
+		return;
+	//push back a model view matrix to transform the rendering of this mesh
+	ctx.push_modelview_matrix();
+
+
+	// translate and scale
+	double R = 1.0;
+	ctx.mul_modelview_matrix(
+		cgv::math::translate4<double>(mesh_location)*
+		cgv::math::scale4<double>(dvec3(mesh_scale))*R
+	);
+
+	// actually draw the mesh
+	earth_info.draw_all(ctx);
+
+
+	// restore the previous transform
+
+	ctx.pop_modelview_matrix();
+
+
+
+	/*cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
 	
-	//Added a box (probably to try the renderer stuff)
-	std::vector<box3> box;
-	box.push_back(box3(vec3(-0.5f, -1, -0.5f), vec3(0.5f, 0, 0.5f)));
-	std::vector<rgb> box_col;
-	box_col.push_back(rgb(0.2f, 0.2f, 0.2f));
-	renderer.set_box_array(ctx, box);
-	renderer.set_color_array(ctx, box_col);
-	if (renderer.validate_and_enable(ctx)) {
-		renderer.draw(ctx, 0, box.size());
-	}
-	renderer.disable(ctx);
 	// draw dynamic boxes 
-	/*renderer.set_render_style(movable_style);
+	renderer.set_render_style(movable_style);
 	renderer.set_box_array(ctx, movable_boxes);
 	renderer.set_color_array(ctx, movable_box_colors);
 	renderer.set_translation_array(ctx, movable_box_translations);

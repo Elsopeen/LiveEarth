@@ -42,6 +42,9 @@ protected:
 	/*std::vector<box3> boxes;
 	std::vector<rgb> box_colors;*/
 
+	//Mesh renderer for earth
+	cgv::render::mesh_render_info earth_info;
+
 	// rendering styles
 	cgv::render::box_render_style style;
 	cgv::render::rounded_cone_render_style cone_style;
