@@ -511,8 +511,6 @@ bool vr_test::init(cgv::render::context& ctx)
 		}
 	}
 
-	cgv::media::mesh::simple_mesh<> earth_sphere;
-	cgv::render::shader_program ground_from_space;
 	ground_from_space.create(ctx);
 	ground_from_space.attach_dir(ctx, "../../../src/shaders/groundfromspace/", true);
 	ground_from_space.link(ctx, true);
@@ -536,6 +534,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	ground_from_space.set_uniform(ctx, "Samples", 4);
 	ground_from_space.set_uniform(ctx, "s2Tex1", 0);
 	ground_from_space.set_uniform(ctx, "s2Tex2", 1);
+	ground_from_space.disable(ctx);
 
 	if (earth_sphere.read("../../../src/models/sphere_360_cuts.obj")) {
 		earth_info.construct(ctx, earth_sphere);
@@ -833,8 +832,8 @@ void vr_test::draw(cgv::render::context& ctx)
 	// translate and scale
 	double R = 1.0;
 	ctx.mul_modelview_matrix(
-		cgv::math::translate4<double>(vec3(0,0,0))*
-		cgv::math::scale4<double>(dvec3(vec3(1,1,1)))*R
+		cgv::math::translate4<double>(mesh_location)*
+		cgv::math::scale4<double>(dvec3(mesh_scale))*R
 	);
 
 	// actually draw the mesh

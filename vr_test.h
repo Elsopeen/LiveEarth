@@ -44,6 +44,7 @@ protected:
 
 	//Mesh renderer for earth
 	cgv::render::mesh_render_info earth_info;
+	cgv::media::mesh::simple_mesh<> earth_sphere;
 
 	// rendering styles
 	cgv::render::box_render_style style;
@@ -55,7 +56,7 @@ protected:
 	dquat mesh_orientation;
 
 	// Ground From Space Earth shader parameters
-
+	cgv::render::shader_program ground_from_space;
 	float Kr = 0.0030f;
 	float Km = 0.0015f;
 	float ESun = 16.0f;
