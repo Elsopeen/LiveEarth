@@ -54,6 +54,18 @@ protected:
 	dvec3 mesh_location;
 	dquat mesh_orientation;
 
+	// Ground From Space Earth shader parameters
+
+	float Kr = 0.0030f;
+	float Km = 0.0015f;
+	float ESun = 16.0f;
+	float g = -0.75f;
+	float InnerRadius = 10.0f * 25.0f;
+	float OuterRadius = 10.25f * 25.0f;
+	float Scale = 1.0f / (OuterRadius - InnerRadius);
+	float ScaleDepth = 0.25f;
+	float ScaleOverScaleDepth = Scale / ScaleDepth;
+
 	// render information for mesh
 	cgv::render::mesh_render_info MI;
 
