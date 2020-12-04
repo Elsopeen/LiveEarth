@@ -37,7 +37,6 @@ protected:
 		IS_GRAB
 	};
 
-	
 	// store the scene as colored boxes
 	/*std::vector<box3> boxes;
 	std::vector<rgb> box_colors;*/
@@ -45,6 +44,12 @@ protected:
 	//Mesh renderer for earth
 	cgv::render::mesh_render_info earth_info;
 	cgv::media::mesh::simple_mesh<> earth_sphere;
+
+	//Line renderer for one orbit data
+	cgv::render::rounded_cone_renderer orbit_one;
+	std::string orbit_name;
+	std::vector<float> line_1;
+	std::vector<float> line_2;
 
 	// rendering styles
 	cgv::render::box_render_style style;
@@ -148,6 +153,7 @@ protected:
 	vec2 center_right;
 
 public:
+
 	void init_cameras(vr::vr_kit* kit_ptr);
 
 	void start_camera();
@@ -192,6 +198,7 @@ public:
 	void finish_draw(cgv::render::context& ctx);
 
 	void create_gui();
+
 };
 
 ///@}

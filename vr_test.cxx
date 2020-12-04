@@ -1,4 +1,4 @@
-#include "vr_test.h"
+﻿#include "vr_test.h"
 
 #include <cgv/signal/rebind.h>
 #include <cgv/base/register.h>
@@ -10,11 +10,20 @@
 #include <cgv_gl/sphere_renderer.h>
 #include <cgv/media/mesh/simple_mesh.h>
 #include <cg_vr/vr_events.h>
+#include <cgv/defines/quote.h>
 
 #include <random>
+#include <iostream>
+#include <fstream>
+#include <regex>
+#include <iterator>
 
 #include "intersection.h"
 
+/*static std::string get_input_directory()
+{
+	return QUOTE_SYMBOL_VALUE(INPUT_DIR);
+}​*/
 
 void vr_test::init_cameras(vr::vr_kit* kit_ptr)
 {
@@ -163,10 +172,10 @@ void vr_test::on_device_change(void* kit_handle, bool attach)
 	box_colors.push_back(table_clr);
 	box_colors.push_back(table_clr);
 	box_colors.push_back(table_clr);
-}*/
+}
 
 /// construct boxes that represent a room of dimensions w,d,h and wall width W
-/*void vr_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
+void vr_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
 	// construct floor
 	boxes.push_back(box3(vec3(-0.5f*w, -W, -0.5f*d), vec3(0.5f*w, 0, 0.5f*d)));
 	box_colors.push_back(rgb(0.2f, 0.2f, 0.2f));
@@ -186,10 +195,10 @@ void vr_test::on_device_change(void* kit_handle, bool attach)
 		boxes.push_back(box3(vec3(-0.5f*w - W, h, -0.5f*d - W), vec3(0.5f*w + W, h + W, 0.5f*d + W)));
 		box_colors.push_back(rgb(0.5f, 0.5f, 0.8f));
 	}
-}*/
+}
 
 /// construct boxes for environment
-/*void vr_test::construct_environment(float s, float ew, float ed, float w, float d, float h) {
+void vr_test::construct_environment(float s, float ew, float ed, float w, float d, float h) {
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> distribution(0, 1);
 	unsigned n = unsigned(ew / s);
@@ -212,17 +221,17 @@ void vr_test::on_device_change(void* kit_handle, bool attach)
 					0.2f*distribution(generator) + 0.1f));*\/
 		}
 	}
-}*/
+}
 
 /// construct boxes that can be moved around
-/*void vr_test::construct_movable_boxes(float tw, float td, float th, float tW, size_t nr) {
-	/*
+void vr_test::construct_movable_boxes(float tw, float td, float th, float tW, size_t nr) {
+	
 	vec3 extent(0.75f, 0.5f, 0.05f);
 	movable_boxes.push_back(box3(-0.5f * extent, 0.5f * extent));
 	movable_box_colors.push_back(rgb(0, 0, 0));
 	movable_box_translations.push_back(vec3(0, 1.2f, 0));
 	movable_box_rotations.push_back(quat(1, 0, 0, 0));
-	*\/
+	
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> distribution(0, 1);
 	std::uniform_real_distribution<float> signed_distribution(-1, 1);
@@ -511,7 +520,7 @@ bool vr_test::init(cgv::render::context& ctx)
 		}
 	}
 
-	ground_from_space.create(ctx);
+	/*ground_from_space.create(ctx);
 	ground_from_space.attach_dir(ctx, "../../../src/shaders/groundfromspace/", true);
 	ground_from_space.link(ctx, true);
 
@@ -534,11 +543,11 @@ bool vr_test::init(cgv::render::context& ctx)
 	ground_from_space.set_uniform(ctx, "Samples", 4);
 	ground_from_space.set_uniform(ctx, "s2Tex1", 0);
 	ground_from_space.set_uniform(ctx, "s2Tex2", 1);
-	ground_from_space.disable(ctx);
+	ground_from_space.disable(ctx);*/
 
-	if (earth_sphere.read("../../../src/models/sphere_360_cuts.obj")) {
+	if (earth_sphere.read("../../../src/models/sphere_36_cuts.obj")) {
 		earth_info.construct(ctx, earth_sphere);
-		earth_info.bind(ctx, ground_from_space, true);
+		earth_info.bind(ctx, ctx.ref_surface_shader_program(true), true);
 		auto& mats = earth_info.get_materials();
 		if (mats.size() > 0) {
 			//setup texture paths
@@ -551,7 +560,45 @@ bool vr_test::init(cgv::render::context& ctx)
 			mats[0]->set_diffuse_index(di);
 		}
 	}
+	std::string line;
+	std::ifstream file_reader("../../../src/sat_data/station.txt");
+	if (file_reader.is_open())
+	{
+		while (std::getline(file_reader, line))
+		{
+			std::cout << line << std::endl;
+			std::regex reg_line_one("^1 (\d{5})U (\d{2})(\d{3})([A-Z]{0,3} {0,3}) (\d{2})(\d{3})(\.\d+ *) (\.\d+ *) (\d{5})-(\d+ *) (\d{5})-(\d+ *) (\d *) (\d{4})$");
+			std::regex reg_line_two("^2 (\d{5})  ([\d\.]+) ([\d\.]+) (\d+) ([\d\.]+) {1,2}([\d\.]+) (\d{2}\.\d{8})(\d{5})(\d)$");
+			std::regex reg_name("^([A-Z]+.*)$");
+			std::smatch matches;
 
+			if (std::regex_search(line, matches, reg_line_one)) {
+				std::cout << "Match found line 1\n";
+
+				for (size_t i = 0; i < matches.size(); ++i) {
+					std::cout << i << ": '" << matches[i].str() << "'\n";
+				}
+			}
+			else if (std::regex_search(line, matches, reg_line_two)){
+				std::cout << "Match found line 2\n";
+
+				for (size_t i = 0; i < matches.size(); ++i) {
+					std::cout << i << ": '" << matches[i].str() << "'\n";
+				}
+			}
+			else if (std::regex_search(line, matches, reg_name)) {
+				std::cout << "Match found title\n";
+
+				for (size_t i = 0; i < matches.size(); ++i) {
+					std::cout << i << ": '" << matches[i].str() << "'\n";
+				}
+			}
+			else {
+				std::cout << "No match found" << std::endl;
+			}
+		}
+		file_reader.close();
+	}
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
@@ -830,10 +877,10 @@ void vr_test::draw(cgv::render::context& ctx)
 
 
 	// translate and scale
-	double R = 1.0;
+	double R = 0.5;
 	ctx.mul_modelview_matrix(
-		cgv::math::translate4<double>(mesh_location)*
-		cgv::math::scale4<double>(dvec3(mesh_scale))*R
+		cgv::math::translate4<double>(vec3(0,0,0))*
+		cgv::math::scale4<double>(dvec3(vec3(1,1,1)))*R
 	);
 
 	// actually draw the mesh
