@@ -560,7 +560,9 @@ bool vr_test::init(cgv::render::context& ctx)
 			mats[0]->set_diffuse_index(di);
 		}
 	}
-	std::string line;
+
+	//to finish later
+	/*std::string line;
 	std::ifstream file_reader("../../../src/sat_data/station.txt");
 	if (file_reader.is_open())
 	{
@@ -598,7 +600,25 @@ bool vr_test::init(cgv::render::context& ctx)
 			}
 		}
 		file_reader.close();
-	}
+	}*/
+	orbit_name = "ISS";
+	line_1 = {25544, 98,067,20,336,0.88693861,.00004720, 00000,0,0.93347,4,0,9996};
+	line_2 = { 25544, 52.6470, 238.6835, .0001915, 101.4338,18.8734,15.49130315,25801,5 };
+	orbit_incl = line_2[1];
+	raan = line_2[2];
+	eccentricity = line_2[3];
+	arg_perigee = line_2[4];
+	mean_anom = line_2[5];
+	mean_motion = line_2[6];
+
+	bstar = line_1[10] * pow(10, -1 * line_1[11]);
+
+	double a1 = pow((ke / mean_motion), 2 / 3);
+	double delt1 = 3 / 2 * k2 / pow(a1, 2) * (3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3 / 2);
+	double a0 = a1*(1-1/3*delt1 -pow(delt1,2)-134/81*pow(delt1,3));
+	double delt0 = 3 / 2 * k2 / pow(a0, 2) * (3 * pow(cos(orbit_incl), 2) - 1) / pow(1-pow(eccentricity,2),3/2);
+	orig_mean_motion = mean_motion / (1 + delt0);
+	orig_semimaj_axis = a0 / (1 - delt0);
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);

@@ -48,8 +48,32 @@ protected:
 	//Line renderer for one orbit data
 	cgv::render::rounded_cone_renderer orbit_one;
 	std::string orbit_name;
-	std::vector<float> line_1;
-	std::vector<float> line_2;
+	std::vector<double> line_1;
+	std::vector<double> line_2;
+
+	/**
+	*SGP4 data
+	* */
+	//constants
+	const double ke = pow(5.9722*pow(10,24)* 6.674*pow(10,-11.0), 0.5);
+	const double earth_radius_at_equator = 6378;
+		//gravitational zonal harmonic of Earth
+	const double j2 = 2 * 5.413080 * pow(10, -4) / pow(earth_radius_at_equator, 2);
+	const double j3 = -0.253881 * pow(10, -1);
+	const double j4 = 0.62098875 * pow(10, -6) * -8 / 3 / pow(earth_radius_at_equator, 4);
+	
+	const double k2 = 1 / 2 * j2 * pow(earth_radius_at_equator, 2);
+	const double k4 = -3 / 8 * j4 * pow(earth_radius_at_equator, 4);
+	const double A30 = -1 * j3 * pow(earth_radius_at_equator, 3);
+	const double s_density_param = 78.0;
+	const double q0_density_param = 120.0;
+	//initial mean elements
+	double orbit_incl, raan, eccentricity, arg_perigee, mean_anom, mean_motion;
+	double bstar;
+	double orig_mean_motion, orig_semimaj_axis;
+	double s_param;
+	double q0_min_s_four;
+
 
 	// rendering styles
 	cgv::render::box_render_style style;
