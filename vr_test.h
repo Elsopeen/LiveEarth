@@ -75,6 +75,8 @@ protected:
 
 	const double astronomical_unit = 149597870.700; // 1 AU in Kms
 	//initial mean elements
+	tm epoch;
+	time_t epoch_time;
 	double orbit_incl, raan, eccentricity, arg_perigee, mean_anom, mean_motion;
 	double bstar;
 	double orig_mean_motion, orig_semimaj_axis;
@@ -89,6 +91,7 @@ protected:
 	double C2, C1, C3, C4, C5;
 	double D2, D3, D4;
 	//secular effects
+	double t_min_t0;
 	double secul_anomaly, secul_arg_perigee, secul_raan;
 	double delta_arg_perig,delta_anom;
 	double anom_p,arg_perigee_fixed,raan_fixed,eccentricity_fixed, semimaj_axis_fixed;
