@@ -23,7 +23,7 @@
 /*static std::string get_input_directory()
 {
 	return QUOTE_SYMBOL_VALUE(INPUT_DIR);
-}​*/
+}​/**/
 
 void vr_test::init_cameras(vr::vr_kit* kit_ptr)
 {
@@ -624,6 +624,48 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	double perigee = (orig_semimaj_axis * pow(10,-3) - earth_radius_at_equator)* (1 - eccentricity) ;
 
+	if (perigee > 98 && perigee < 156) {
+		s_param = orig_semimaj_axis * (1 - eccentricity) - s_density_param + earth_radius_at_equator;
+		q0_min_s_four = pow(pow(pow(q0_density_param - s_density_param, 4), 1.0 / 4) + s_density_param - s_param, 4);
+	}
+	else if (perigee < 98) {
+		s_param = 20.0 / km_per_earth_radii + earth_radius_at_equator;
+		q0_min_s_four = pow(pow(pow(q0_density_param - s_density_param, 4), 1.0 / 4) + s_density_param - s_param, 4);
+	}
+	else {
+		s_param = s_density_param;
+		q0_min_s_four = pow(q0_density_param - s_density_param, 4);
+	}
+
+	theta = std::cos(orbit_incl * deg_to_rad);
+	xi = 1 / (orig_semimaj_axis - s_param);
+	beta0 = pow(1 - pow(eccentricity, 2), 0.5);
+	eta = orig_semimaj_axis * eccentricity * xi;
+
+	C2 = q0_min_s_four * pow(xi, 4) * orig_mean_motion
+		* pow(1 - pow(eta, 2), -7.0 / 2.0) * (orig_semimaj_axis *
+			(1 + (3.0 / 2 * pow(eta, 2)) + (4 * eccentricity * eta) + (eccentricity * pow(eta, 3)))
+			+ 3.0 / 2 * ((k2 * xi) / (1 - pow(eta, 2))) * (-1.0 / 2 + 3.0 / 2 * pow(theta, 2)) 
+			* (8 + 24 * pow(eta, 2) + 3 * pow(eta, 4)));
+	C1 = bstar * C2;
+	C3 = (q0_min_s_four * pow(xi, 5) * A30 * orig_mean_motion 
+		* earth_radius_at_equator * sin(orbit_incl * deg_to_rad)) /
+		(k2 * eccentricity);
+	C4 = 2 * orig_mean_motion * q0_min_s_four * pow(xi, 4) * orig_semimaj_axis * pow(beta0, 2)
+		* pow(1 - pow(eta, 2), -7.0 / 2) * ((2 * eta * (1 + eccentricity * eta) + 0.5 * eccentricity + 0.5 * pow(eta, 3))
+			- (2 * k2 * xi) / (orig_semimaj_axis * (1 - pow(eta, 2)))
+			* (3 * (1 - 3 * pow(theta, 2))
+				* (1 + 3.0 / 2 * pow(eta, 2) - 2 * eccentricity * eta 
+					- 0.5 * eccentricity * pow(eta, 3))
+				+ 3.0 / 4 * (1 - pow(theta, 2)) 
+				* (2 * pow(eta, 2) - eccentricity * eta - eccentricity * pow(eta, 3)) 
+				* cos(2 * arg_perigee)));
+	C5 = 2 * q0_min_s_four * pow(xi, 4) * orig_semimaj_axis * pow(beta0, 2) 
+		* pow(1 - pow(eta, 2), -7.0 / 2)
+		* (1 + 11.0 / 4 * eta * (eta + eccentricity) + eccentricity * pow(eta, 3));
+	D2 = 4 * orig_semimaj_axis * xi * pow(C1, 2);
+	D3 = 4.0 / 3 * orig_semimaj_axis * pow(xi, 2) * (17 * orig_semimaj_axis + s_param) * pow(C1, 3);
+	D4 = 2.0 / 3 * orig_semimaj_axis * pow(xi, 3) * (221 * orig_semimaj_axis + 31 * s_param) * pow(C1, 4);
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
