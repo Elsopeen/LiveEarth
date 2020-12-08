@@ -81,6 +81,19 @@ protected:
 	double s_param;
 	double q0_min_s_four;
 
+	//following constants
+	double theta;
+	double xi;
+	double beta0;
+	double eta;
+	double C2, C1, C3, C4, C5;
+	double D2, D3, D4;
+	//secular effects
+	double secul_anomaly, secul_arg_perigee, secul_raan;
+	double delta_arg_perig,delta_anom;
+	double anom_p,arg_perigee_fixed,raan_fixed,eccentricity_fixed, semimaj_axis_fixed;
+	double L, beta, mean_motion_fixed;
+
 
 	// rendering styles
 	cgv::render::box_render_style style;

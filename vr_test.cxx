@@ -604,6 +604,20 @@ bool vr_test::init(cgv::render::context& ctx)
 	orbit_name = "ISS";
 	line_1 = {25544, 98,067,20,336,0.88693861,.00004720, 00000,0,0.93347,4,0,9996};
 	line_2 = { 25544, 52.6470, 238.6835, .0001915, 101.4338,18.8734,15.49130315,25801,5 };
+	//reading data
+	int year;
+	if (line_1[3]>=0 && line_1[3]<=56) {
+		year = 2000 + line_1[3];
+	}
+	else if (line_1[3] >= 57 && line_1[3] <= 99) {
+		year = 1900 + line_1[3];
+	}
+
+	epoch.tm_isdst = -1;
+	epoch.tm_yday = line_1[4];
+	epoch.tm_year = year - 1900;
+	epoch_time = mktime(&epoch);
+
 	orbit_incl = line_2[1];
 	raan = line_2[2];
 	eccentricity = line_2[3];
@@ -613,6 +627,7 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	bstar = line_1[10] * pow(10, -1 * line_1[11]);
 
+	//calculating orig mean motion and orig semimaj axis
 	double a1 = pow(ke / (mean_motion * rev_per_day_to_rad_per_sec), 2.0 / 3.0);
 	double delt1 = 3.0 / 2 * (k2 / pow(a1, 2)) *
 		((3 * pow(cos(orbit_incl * deg_to_rad), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
@@ -622,6 +637,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	orig_mean_motion = mean_motion * rev_per_day_to_rad_per_sec / (1 + delt0);
 	orig_semimaj_axis = a0 / (1 - delt0);
 
+	//calculating perigee and changing the values of s and (q0-s)^4
 	double perigee = (orig_semimaj_axis * pow(10,-3) - earth_radius_at_equator)* (1 - eccentricity) ;
 
 	if (perigee > 98 && perigee < 156) {
@@ -636,7 +652,7 @@ bool vr_test::init(cgv::render::context& ctx)
 		s_param = s_density_param;
 		q0_min_s_four = pow(q0_density_param - s_density_param, 4);
 	}
-
+	//computing constants
 	theta = std::cos(orbit_incl * deg_to_rad);
 	xi = 1 / (orig_semimaj_axis - s_param);
 	beta0 = pow(1 - pow(eccentricity, 2), 0.5);
@@ -666,6 +682,54 @@ bool vr_test::init(cgv::render::context& ctx)
 	D2 = 4 * orig_semimaj_axis * xi * pow(C1, 2);
 	D3 = 4.0 / 3 * orig_semimaj_axis * pow(xi, 2) * (17 * orig_semimaj_axis + s_param) * pow(C1, 3);
 	D4 = 2.0 / 3 * orig_semimaj_axis * pow(xi, 3) * (221 * orig_semimaj_axis + 31 * s_param) * pow(C1, 4);
+	//computing secular effects
+	t_min_t0 = time(0) - epoch_time;
+
+	secul_anomaly = mean_anom + (1 + (3 * k2 * (-1 + 3 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 2) * pow(beta0, 3))
+		+ (3 * pow(k2, 2) * (13 - 78 * pow(theta, 2) + 137 * pow(theta, 4)) / (16 * pow(orig_semimaj_axis, 4) * pow(beta0, 7))))
+		* orig_mean_motion * (t_min_t0);
+	secul_arg_perigee = arg_perigee + (-(3 * k2 * (1 - 5 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 2) * pow(beta0, 4))
+		+ (3 * pow(k2, 2) * (7 - 114 * pow(theta, 2) + 395 * pow(theta, 4))) / (16 * pow(orig_semimaj_axis, 4) * pow(beta0, 8))
+		+ (5 * k4 * (3 - 36 * pow(theta, 2) + 49 * pow(theta, 4))) / (4 * pow(orig_semimaj_axis, 4) * pow(beta0, 8)))
+		* orig_mean_motion * t_min_t0;
+	secul_raan = raan + (-(3 * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 4))
+		+ (3 * pow(k2, 2) * (4 * theta - 19 * pow(theta, 3))) / (2 * pow(orig_semimaj_axis, 4) * pow(beta0, 8))
+		+ (5 * k4 * theta * (3 - 7 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 4) * pow(beta0, 8)))
+		* orig_mean_motion * t_min_t0;
+	if (perigee >= 220) {
+		delta_arg_perig = bstar * C3 * cos(arg_perigee * deg_to_rad) * t_min_t0;
+		delta_anom = -2.0 / 3 * q0_min_s_four * bstar * pow(xi, 4) * earth_radius_at_equator / (eccentricity * eta)
+			* (pow(1 + eta * cos(secul_anomaly), 3) - pow(1 + eta * cos(mean_anom), 3));
+		anom_p = secul_anomaly + delta_arg_perig + delta_anom;
+		arg_perigee_fixed = secul_arg_perigee - delta_arg_perig - delta_anom;
+		raan_fixed = secul_raan - 21.0 / 2
+			* (orig_mean_motion * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 2))
+			* C1 * pow(t_min_t0, 2);
+		eccentricity_fixed = eccentricity - bstar * C4 * t_min_t0 - bstar * C5 * (sin(anom_p) - sin(mean_anom));
+
+		semimaj_axis_fixed = orig_semimaj_axis 
+			* pow(1-C1*t_min_t0-D2*pow(t_min_t0,2)-D3*pow(t_min_t0,3)-D4*pow(t_min_t0,4), 2);
+		L = anom_p + arg_perigee_fixed + raan_fixed + orig_mean_motion
+			* (3.0 / 2 * C1 * pow(t_min_t0, 2) + (D2 + 2 * pow(C1, 2)) * pow(t_min_t0, 3)
+				+ 1.0 / 4 * (3 * D3 + 12 * C1 * D2 + 10 * pow(C1, 3)) * pow(t_min_t0, 4)
+				+ 1.0 / 5 * (3 * D4 + 12 * C1 * D3 + 6 * pow(D2, 2) 
+					+ 30 * pow(C1, 2) * D2 + 15 * pow(C1, 4)) * pow(t_min_t0, 5));
+		}
+	else {
+		anom_p = secul_anomaly;
+		arg_perigee_fixed = secul_arg_perigee;
+		raan_fixed = secul_raan - 21.0 / 2
+			* (orig_mean_motion * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 2))
+			* C1 * pow(t_min_t0, 2);
+		eccentricity_fixed = eccentricity - bstar * C4 * t_min_t0;
+		semimaj_axis_fixed = orig_semimaj_axis * pow(1 - C1 * t_min_t0, 2);
+		L = anom_p + arg_perigee_fixed + raan_fixed + orig_mean_motion * 3.0 / 2 * C1 * pow(t_min_t0, 2);
+	}
+	beta = pow(1 - pow(eccentricity_fixed, 2), 0.5);
+	mean_motion_fixed = ke / pow(semimaj_axis_fixed, 2.0 / 3);
+
+
+
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
