@@ -613,12 +613,17 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	bstar = line_1[10] * pow(10, -1 * line_1[11]);
 
-	double a1 = pow((ke / mean_motion), 2 / 3);
-	double delt1 = 3 / 2 * k2 / pow(a1, 2) * (3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3 / 2);
-	double a0 = a1*(1-1/3*delt1 -pow(delt1,2)-134/81*pow(delt1,3));
-	double delt0 = 3 / 2 * k2 / pow(a0, 2) * (3 * pow(cos(orbit_incl), 2) - 1) / pow(1-pow(eccentricity,2),3/2);
-	orig_mean_motion = mean_motion / (1 + delt0);
+	double a1 = pow(ke / (mean_motion * rev_per_day_to_rad_per_sec), 2.0 / 3.0);
+	double delt1 = 3.0 / 2 * (k2 / pow(a1, 2)) *
+		((3 * pow(cos(orbit_incl * deg_to_rad), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
+	double a0 = a1 * (1 - (1.0 / 3 * delt1) - pow(delt1, 2) - (134.0 / 81 * pow(delt1, 3)));
+	double delt0 = 3.0 / 2 * (k2 / pow(a0, 2)) *
+		((3 * pow(cos(orbit_incl * deg_to_rad), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
+	orig_mean_motion = mean_motion * rev_per_day_to_rad_per_sec / (1 + delt0);
 	orig_semimaj_axis = a0 / (1 - delt0);
+
+	double perigee = (orig_semimaj_axis * pow(10,-3) - earth_radius_at_equator)* (1 - eccentricity) ;
+
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);

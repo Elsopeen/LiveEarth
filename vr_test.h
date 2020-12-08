@@ -11,6 +11,8 @@
 #include <cgv_gl/rounded_cone_renderer.h>
 #include <cgv/render/frame_buffer.h>
 
+#include <math.h>
+
 ///@ingroup VR
 ///@{
 
@@ -57,16 +59,21 @@ protected:
 	//constants
 	const double ke = pow(5.9722*pow(10,24)* 6.674*pow(10,-11.0), 0.5);
 	const double earth_radius_at_equator = 6378;
+	const double km_per_earth_radii = 6378.135;
+	const double rev_per_day_to_rad_per_sec = 2 * M_PI / (24 * 3600);
+	const double deg_to_rad = M_PI / 180;
 		//gravitational zonal harmonic of Earth
 	const double j2 = 2 * 5.413080 * pow(10, -4) / pow(earth_radius_at_equator, 2);
 	const double j3 = -0.253881 * pow(10, -1);
 	const double j4 = 0.62098875 * pow(10, -6) * -8 / 3 / pow(earth_radius_at_equator, 4);
 	
-	const double k2 = 1 / 2 * j2 * pow(earth_radius_at_equator, 2);
-	const double k4 = -3 / 8 * j4 * pow(earth_radius_at_equator, 4);
+	const double k2 = 5.413080 * pow(10,-4);
+	const double k4 = 0.62098875 * pow(10,-6);
 	const double A30 = -1 * j3 * pow(earth_radius_at_equator, 3);
 	const double s_density_param = 78.0;
 	const double q0_density_param = 120.0;
+
+	const double astronomical_unit = 149597870.700; // 1 AU in Kms
 	//initial mean elements
 	double orbit_incl, raan, eccentricity, arg_perigee, mean_anom, mean_motion;
 	double bstar;
