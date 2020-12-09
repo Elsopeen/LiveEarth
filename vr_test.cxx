@@ -770,6 +770,21 @@ bool vr_test::init(cgv::render::context& ctx)
 	delt_r_dot = -(k2 * mean_motion_fixed) / p_L * (1 - pow(theta, 2)) * sin(2 * u);
 	delt_r_f_dot = (k2 * mean_motion_fixed) / p_L 
 		* ((1 - pow(theta, 2)) * cos(2 * u) - 3.0 / 2 * (1 - 3 * pow(theta, 2)));
+	//short-period periodics
+	r_k = r * (1 - 3.0 / 2 * k2 * pow(1 - pow(e_L, 2), 0.5) / pow(p_L, 2) * (3 * pow(theta, 2) - 1)) 
+		+ delt_r;
+	u_k = u + delt_u;
+	raan_k = raan_fixed + delt_raan;
+	incl_k = orbit_incl + delt_incl;
+	r_dot_k = r_dot + delt_r_dot;
+	r_f_dot_k = r_f_dot + delt_r_f_dot;
+	//unit orientation vectors
+	vec_M = vec3(-1*sin(raan_k)*cos(incl_k),cos(raan_k)*cos(incl_k),sin(incl_k));
+	vec_N = vec3(cos(raan_k), sin(raan_k), 0);
+	vec_U = vec_M * sin(u_k) + vec_N * cos(u_k);
+	vec_V = vec_M * cos(u_k) - vec_N * sin(u_k);
+	pos_r = vec_U * r_k;
+	veloc_r_dot = vec_U * r_dot_k + vec_V * r_f_dot_k;
 
 
 	cgv::render::ref_box_renderer(ctx, 1);

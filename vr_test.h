@@ -106,6 +106,13 @@ protected:
 	double r, r_dot, r_f_dot;
 	double cos_u, sin_u, u;
 	double delt_r, delt_u, delt_raan, delt_incl, delt_r_dot, delt_r_f_dot;
+	//short-period periodics
+	double r_k, u_k, raan_k, incl_k, r_dot_k, r_f_dot_k;
+	//unit orientation vectors
+	vec3 vec_U, vec_V;
+	vec3 vec_M, vec_N;
+	vec3 pos_r;
+	vec3 veloc_r_dot;
 
 	// rendering styles
 	cgv::render::box_render_style style;
