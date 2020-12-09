@@ -616,29 +616,35 @@ bool vr_test::init(cgv::render::context& ctx)
 	epoch.tm_isdst = -1;
 	epoch.tm_yday = line_1[4];
 	epoch.tm_year = year - 1900;
+	epoch.tm_mon = 0;
+	epoch.tm_hour = line_1[5] * 24.0;
+	epoch.tm_min = (line_1[5] * 24.0 - epoch.tm_hour) * 60;
+	epoch.tm_sec = ((line_1[5] * 24.0 - epoch.tm_hour) * 60 - epoch.tm_min)*60;
+	epoch.tm_mday = 0;
+	epoch.tm_wday = 0;
 	epoch_time = mktime(&epoch);
 
-	orbit_incl = line_2[1];
-	raan = line_2[2];
+	orbit_incl = line_2[1] * deg_to_rad;
+	raan = line_2[2] * deg_to_rad;
 	eccentricity = line_2[3];
-	arg_perigee = line_2[4];
-	mean_anom = line_2[5];
-	mean_motion = line_2[6];
+	arg_perigee = line_2[4] * deg_to_rad;
+	mean_anom = line_2[5] * deg_to_rad;
+	mean_motion = line_2[6] * rev_per_day_to_rad_per_sec;
 
-	bstar = line_1[10] * pow(10, -1 * line_1[11]);
+	bstar = line_1[9] * pow(10, -1 * line_1[10]);
 
 	//calculating orig mean motion and orig semimaj axis
-	double a1 = pow(ke / (mean_motion * rev_per_day_to_rad_per_sec), 2.0 / 3.0);
+	double a1 = pow(ke / (mean_motion), 2.0 / 3.0);
 	double delt1 = 3.0 / 2 * (k2 / pow(a1, 2)) *
-		((3 * pow(cos(orbit_incl * deg_to_rad), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
+		((3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
 	double a0 = a1 * (1 - (1.0 / 3 * delt1) - pow(delt1, 2) - (134.0 / 81 * pow(delt1, 3)));
 	double delt0 = 3.0 / 2 * (k2 / pow(a0, 2)) *
-		((3 * pow(cos(orbit_incl * deg_to_rad), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
-	orig_mean_motion = mean_motion * rev_per_day_to_rad_per_sec / (1 + delt0);
+		((3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
+	orig_mean_motion = mean_motion / (1 + delt0);
 	orig_semimaj_axis = a0 / (1 - delt0);
 
 	//calculating perigee and changing the values of s and (q0-s)^4
-	double perigee = (orig_semimaj_axis * pow(10,-3) - earth_radius_at_equator)* (1 - eccentricity) ;
+	double perigee = (orig_semimaj_axis - earth_radius_at_equator) * (1 - eccentricity) ;
 
 	if (perigee > 98 && perigee < 156) {
 		s_param = orig_semimaj_axis * (1 - eccentricity) - s_density_param + earth_radius_at_equator;
@@ -653,7 +659,7 @@ bool vr_test::init(cgv::render::context& ctx)
 		q0_min_s_four = pow(q0_density_param - s_density_param, 4);
 	}
 	//computing constants
-	theta = std::cos(orbit_incl * deg_to_rad);
+	theta = std::cos(orbit_incl);
 	xi = 1 / (orig_semimaj_axis - s_param);
 	beta0 = pow(1 - pow(eccentricity, 2), 0.5);
 	eta = orig_semimaj_axis * eccentricity * xi;
@@ -665,7 +671,7 @@ bool vr_test::init(cgv::render::context& ctx)
 			* (8 + 24 * pow(eta, 2) + 3 * pow(eta, 4)));
 	C1 = bstar * C2;
 	C3 = (q0_min_s_four * pow(xi, 5) * A30 * orig_mean_motion 
-		* earth_radius_at_equator * sin(orbit_incl * deg_to_rad)) /
+		* earth_radius_at_equator * sin(orbit_incl)) /
 		(k2 * eccentricity);
 	C4 = 2 * orig_mean_motion * q0_min_s_four * pow(xi, 4) * orig_semimaj_axis * pow(beta0, 2)
 		* pow(1 - pow(eta, 2), -7.0 / 2) * ((2 * eta * (1 + eccentricity * eta) + 0.5 * eccentricity + 0.5 * pow(eta, 3))
@@ -683,7 +689,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	D3 = 4.0 / 3 * orig_semimaj_axis * pow(xi, 2) * (17 * orig_semimaj_axis + s_param) * pow(C1, 3);
 	D4 = 2.0 / 3 * orig_semimaj_axis * pow(xi, 3) * (221 * orig_semimaj_axis + 31 * s_param) * pow(C1, 4);
 	//computing secular effects
-	t_min_t0 = time(0) - epoch_time;
+	t_min_t0 = difftime(time(0), epoch_time);
 
 	secul_anomaly = mean_anom + (1 + (3 * k2 * (-1 + 3 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 2) * pow(beta0, 3))
 		+ (3 * pow(k2, 2) * (13 - 78 * pow(theta, 2) + 137 * pow(theta, 4)) / (16 * pow(orig_semimaj_axis, 4) * pow(beta0, 7))))
@@ -697,7 +703,7 @@ bool vr_test::init(cgv::render::context& ctx)
 		+ (5 * k4 * theta * (3 - 7 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 4) * pow(beta0, 8)))
 		* orig_mean_motion * t_min_t0;
 	if (perigee >= 220) {
-		delta_arg_perig = bstar * C3 * cos(arg_perigee * deg_to_rad) * t_min_t0;
+		delta_arg_perig = bstar * C3 * cos(arg_perigee) * t_min_t0;
 		delta_anom = -2.0 / 3 * q0_min_s_four * bstar * pow(xi, 4) * earth_radius_at_equator / (eccentricity * eta)
 			* (pow(1 + eta * cos(secul_anomaly), 3) - pow(1 + eta * cos(mean_anom), 3));
 		anom_p = secul_anomaly + delta_arg_perig + delta_anom;
@@ -730,10 +736,10 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	//long-period periodic terms
 	a_x_N = eccentricity_fixed * cos(arg_perigee_fixed);
-	L_L = (A30 * sin(orbit_incl * deg_to_rad)) / (8 * k2 * semimaj_axis_fixed * pow(beta, 2))
+	L_L = (A30 * sin(orbit_incl)) / (8 * k2 * semimaj_axis_fixed * pow(beta, 2))
 		* (eccentricity_fixed * cos(arg_perigee_fixed))
 		* ((3 + 5 * theta) / (1 + theta));
-	a_y_N_L = (A30 * sin(orbit_incl * deg_to_rad)) / (4 * k2 * semimaj_axis_fixed * pow(beta, 2));
+	a_y_N_L = (A30 * sin(orbit_incl)) / (4 * k2 * semimaj_axis_fixed * pow(beta, 2));
 	L_T = L + L_L;
 	a_y_N = eccentricity_fixed * sin(arg_perigee_fixed) + a_y_N_L;
 
@@ -786,6 +792,10 @@ bool vr_test::init(cgv::render::context& ctx)
 	pos_r = vec_U * r_k;
 	veloc_r_dot = vec_U * r_dot_k + vec_V * r_f_dot_k;
 
+	std::cout << pos_r << std::endl;
+
+	orbit_one = cgv::render::rounded_cone_renderer();
+	orbit_one.set_position_array(ctx, std::vector<vec3>({ pos_r }));
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
@@ -1078,7 +1088,7 @@ void vr_test::draw(cgv::render::context& ctx)
 
 	ctx.pop_modelview_matrix();
 
-
+	orbit_one.draw(ctx,0,1);
 
 	/*cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
 	

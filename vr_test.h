@@ -49,6 +49,7 @@ protected:
 
 	//Line renderer for one orbit data
 	cgv::render::rounded_cone_renderer orbit_one;
+	cgv::render::rounded_cone_render_style orbit_one_style;
 	std::string orbit_name;
 	std::vector<double> line_1;
 	std::vector<double> line_2;
@@ -57,7 +58,7 @@ protected:
 	*SGP4 data
 	* */
 	//constants
-	const double ke = pow(5.9722*pow(10,24)* 6.674*pow(10,-11.0), 0.5);
+	const double ke = pow(5.9722*pow(10,24)* 6.674*pow(10,-20.0), 0.5);
 	const double earth_radius_at_equator = 6378;
 	const double km_per_earth_radii = 6378.135;
 	const double rev_per_day_to_rad_per_sec = 2 * M_PI / (24 * 3600);
@@ -70,7 +71,7 @@ protected:
 	const double k2 = 5.413080 * pow(10,-4);
 	const double k4 = 0.62098875 * pow(10,-6);
 	const double A30 = -1 * j3 * pow(earth_radius_at_equator, 3);
-	const double s_density_param = 78.0;
+	const double s_density_param = 1.58703019 * pow(10, -4);
 	const double q0_density_param = 120.0;
 
 	const double astronomical_unit = 149597870.700; // 1 AU in Kms
