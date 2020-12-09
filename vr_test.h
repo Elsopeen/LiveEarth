@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cgv/base/node.h>
 #include <cgv/render/drawable.h>
 #include <cgv/gui/provider.h>
@@ -10,8 +10,11 @@
 #include <cgv/render/shader_program.h>
 #include <cgv_gl/rounded_cone_renderer.h>
 #include <cgv/render/frame_buffer.h>
+#include <cgv/defines/quote.h>
 
 #include <math.h>
+#include "orbittools/coreLib.h"
+#include "orbittools/orbitLib.h"
 
 ///@ingroup VR
 ///@{
@@ -26,12 +29,16 @@
 #include <vr_view_interactor.h>
 #include <vr_render_helpers.h>
 
+
 class vr_test :
 	public cgv::base::node,
 	public cgv::render::drawable,
 	public cgv::gui::event_handler,
 	public cgv::gui::provider {
 protected:
+	static std::string get_input_directory() {
+		return QUOTE_SYMBOL_VALUE(INPUT_DIR);
+	};
 	// different interaction states for the controllers
 	enum InteractionState {
 		IS_NONE,
@@ -50,70 +57,7 @@ protected:
 	//Line renderer for one orbit data
 	cgv::render::rounded_cone_renderer orbit_one;
 	cgv::render::rounded_cone_render_style orbit_one_style;
-	std::string orbit_name;
-	std::vector<double> line_1;
-	std::vector<double> line_2;
-
-	/**
-	*SGP4 data
-	* */
-	//constants
-	const double ke = pow(5.9722*pow(10,24)* 6.674*pow(10,-20.0), 0.5);
-	const double earth_radius_at_equator = 6378;
-	const double km_per_earth_radii = 6378.135;
-	const double rev_per_day_to_rad_per_sec = 2 * M_PI / (24 * 3600);
-	const double deg_to_rad = M_PI / 180;
-		//gravitational zonal harmonic of Earth
-	const double j2 = 2 * 5.413080 * pow(10, -4) / pow(earth_radius_at_equator, 2);
-	const double j3 = -0.253881 * pow(10, -1);
-	const double j4 = 0.62098875 * pow(10, -6) * -8 / 3 / pow(earth_radius_at_equator, 4);
-	
-	const double k2 = 5.413080 * pow(10,-4);
-	const double k4 = 0.62098875 * pow(10,-6);
-	const double A30 = -1 * j3 * pow(earth_radius_at_equator, 3);
-	const double s_density_param = 1.58703019 * pow(10, -4);
-	const double q0_density_param = 120.0;
-
-	const double astronomical_unit = 149597870.700; // 1 AU in Kms
-	//initial mean elements
-	tm epoch;
-	time_t epoch_time;
-	double orbit_incl, raan, eccentricity, arg_perigee, mean_anom, mean_motion;
-	double bstar;
-	double orig_mean_motion, orig_semimaj_axis;
-	double s_param;
-	double q0_min_s_four;
-
-	//following constants
-	double theta;
-	double xi;
-	double beta0;
-	double eta;
-	double C2, C1, C3, C4, C5;
-	double D2, D3, D4;
-	//secular effects
-	double t_min_t0;
-	double secul_anomaly, secul_arg_perigee, secul_raan;
-	double delta_arg_perig,delta_anom;
-	double anom_p,arg_perigee_fixed,raan_fixed,eccentricity_fixed, semimaj_axis_fixed;
-	double L, beta, mean_motion_fixed;
-	//long-period periodic terms
-	double a_x_N, L_L, a_y_N_L, L_T, a_y_N;
-	//kepler's equation's terms
-	double U, temp2, temp3, temp4, temp5, temp6;
-	double sinEpw, cosEpw, Epw;
-	//prelim for short-period periodics
-	double ecosE, esinE, e_L, p_L;
-	double r, r_dot, r_f_dot;
-	double cos_u, sin_u, u;
-	double delt_r, delt_u, delt_raan, delt_incl, delt_r_dot, delt_r_f_dot;
-	//short-period periodics
-	double r_k, u_k, raan_k, incl_k, r_dot_k, r_f_dot_k;
-	//unit orientation vectors
-	vec3 vec_U, vec_V;
-	vec3 vec_M, vec_N;
-	vec3 pos_r;
-	vec3 veloc_r_dot;
+	std::vector<vec3> pos;
 
 	// rendering styles
 	cgv::render::box_render_style style;

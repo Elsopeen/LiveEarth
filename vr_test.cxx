@@ -156,101 +156,6 @@ void vr_test::on_device_change(void* kit_handle, bool attach)
 }
 
 /// construct boxes that represent a table of dimensions tw,td,th and leg width tW
-/*void vr_test::construct_table(float tw, float td, float th, float tW) {
-	// construct table
-	rgb table_clr(0.3f, 0.2f, 0.0f);
-	boxes.push_back(box3(
-		vec3(-0.5f*tw, th - tW, -0.5f*td),
-		vec3(0.5f*tw, th, 0.5f*td)));
-	box_colors.push_back(table_clr);
-
-	boxes.push_back(box3(vec3(-0.5f*tw + 2*tW, 0, -0.5f*td+2*tW), vec3(-0.5f*tw+tW, th - tW, -0.5f*td + tW)));
-	boxes.push_back(box3(vec3(-0.5f*tw + 2*tW, 0, 0.5f*td-2*tW), vec3(-0.5f*tw + tW, th - tW, 0.5f*td - tW)));
-	boxes.push_back(box3(vec3(0.5f*tw-2*tW, 0, -0.5f*td+tW), vec3(0.5f*tw - tW, th - tW, -0.5f*td +2* tW)));
-	boxes.push_back(box3(vec3(0.5f*tw-2*tW, 0, 0.5f*td-2*tW), vec3(0.5f*tw - tW, th - tW, 0.5f*td - tW)));
-	box_colors.push_back(table_clr);
-	box_colors.push_back(table_clr);
-	box_colors.push_back(table_clr);
-	box_colors.push_back(table_clr);
-}
-
-/// construct boxes that represent a room of dimensions w,d,h and wall width W
-void vr_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
-	// construct floor
-	boxes.push_back(box3(vec3(-0.5f*w, -W, -0.5f*d), vec3(0.5f*w, 0, 0.5f*d)));
-	box_colors.push_back(rgb(0.2f, 0.2f, 0.2f));
-
-	if(walls) {
-		// construct walls
-		boxes.push_back(box3(vec3(-0.5f*w, -W, -0.5f*d - W), vec3(0.5f*w, h, -0.5f*d)));
-		box_colors.push_back(rgb(0.8f, 0.5f, 0.5f));
-		boxes.push_back(box3(vec3(-0.5f*w, -W, 0.5f*d), vec3(0.5f*w, h, 0.5f*d + W)));
-		box_colors.push_back(rgb(0.8f, 0.5f, 0.5f));
-
-		boxes.push_back(box3(vec3(0.5f*w, -W, -0.5f*d - W), vec3(0.5f*w + W, h, 0.5f*d + W)));
-		box_colors.push_back(rgb(0.5f, 0.8f, 0.5f));
-	}
-	if(ceiling) {
-		// construct ceiling
-		boxes.push_back(box3(vec3(-0.5f*w - W, h, -0.5f*d - W), vec3(0.5f*w + W, h + W, 0.5f*d + W)));
-		box_colors.push_back(rgb(0.5f, 0.5f, 0.8f));
-	}
-}
-
-/// construct boxes for environment
-void vr_test::construct_environment(float s, float ew, float ed, float w, float d, float h) {
-	std::default_random_engine generator;
-	std::uniform_real_distribution<float> distribution(0, 1);
-	unsigned n = unsigned(ew / s);
-	unsigned m = unsigned(ed / s);
-	float ox = 0.5f*float(n)*s;
-	float oz = 0.5f*float(m)*s;
-	for(unsigned i = 0; i < n; ++i) {
-		float x = i * s - ox;
-		for(unsigned j = 0; j < m; ++j) {
-			float z = j * s - oz;
-			if(fabsf(x) < 0.5f*w && fabsf(x + s) < 0.5f*w && fabsf(z) < 0.5f*d && fabsf(z + s) < 0.5f*d)
-				continue;
-			float h = 0.2f*(std::max(abs(x) - 0.5f*w, 0.0f) + std::max(abs(z) - 0.5f*d, 0.0f))*distribution(generator) + 0.1f;
-			boxes.push_back(box3(vec3(x, 0.0f, z), vec3(x + s, h, z + s)));
-			rgb color = cgv::media::color<float, cgv::media::HLS>(distribution(generator), 0.1f*distribution(generator) + 0.15f, 0.3f);
-			box_colors.push_back(color);
-			/*box_colors.push_back(
-				rgb(0.3f*distribution(generator) + 0.3f,
-					0.3f*distribution(generator) + 0.2f,
-					0.2f*distribution(generator) + 0.1f));*\/
-		}
-	}
-}
-
-/// construct boxes that can be moved around
-void vr_test::construct_movable_boxes(float tw, float td, float th, float tW, size_t nr) {
-	
-	vec3 extent(0.75f, 0.5f, 0.05f);
-	movable_boxes.push_back(box3(-0.5f * extent, 0.5f * extent));
-	movable_box_colors.push_back(rgb(0, 0, 0));
-	movable_box_translations.push_back(vec3(0, 1.2f, 0));
-	movable_box_rotations.push_back(quat(1, 0, 0, 0));
-	
-	std::default_random_engine generator;
-	std::uniform_real_distribution<float> distribution(0, 1);
-	std::uniform_real_distribution<float> signed_distribution(-1, 1);
-	for(size_t i = 0; i < nr; ++i) {
-		float x = distribution(generator);
-		float y = distribution(generator);
-		vec3 extent(distribution(generator), distribution(generator), distribution(generator));
-		extent += 0.01f;
-		extent *= std::min(tw, td)*0.1f;
-
-		vec3 center(-0.5f*tw + x * tw, th + tW, -0.5f*td + y * td);
-		movable_boxes.push_back(box3(-0.5f*extent, 0.5f*extent));
-		movable_box_colors.push_back(rgb(distribution(generator), distribution(generator), distribution(generator)));
-		movable_box_translations.push_back(center);
-		quat rot(signed_distribution(generator), signed_distribution(generator), signed_distribution(generator), signed_distribution(generator));
-		rot.normalize();
-		movable_box_rotations.push_back(rot);
-	}
-}*/
 
 /// construct a scene with a table
 void vr_test::build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW)
@@ -545,7 +450,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	ground_from_space.set_uniform(ctx, "s2Tex2", 1);
 	ground_from_space.disable(ctx);*/
 
-	if (earth_sphere.read("../../../src/models/sphere_36_cuts.obj")) {
+	if (earth_sphere.read(get_input_directory() + "models/sphere_36_cuts.obj")) {
 		earth_info.construct(ctx, earth_sphere);
 		earth_info.bind(ctx, ctx.ref_surface_shader_program(true), true);
 		auto& mats = earth_info.get_materials();
@@ -562,240 +467,40 @@ bool vr_test::init(cgv::render::context& ctx)
 	}
 
 	//to finish later
-	/*std::string line;
-	std::ifstream file_reader("../../../src/sat_data/station.txt");
+	std::string line, line1, line2, line3;
+	std::ifstream file_reader(get_input_directory()+"/sat_data/station.txt");
+	int cpt = 0;
 	if (file_reader.is_open())
 	{
 		while (std::getline(file_reader, line))
 		{
-			std::cout << line << std::endl;
-			std::regex reg_line_one("^1 (\d{5})U (\d{2})(\d{3})([A-Z]{0,3} {0,3}) (\d{2})(\d{3})(\.\d+ *) (\.\d+ *) (\d{5})-(\d+ *) (\d{5})-(\d+ *) (\d *) (\d{4})$");
-			std::regex reg_line_two("^2 (\d{5})  ([\d\.]+) ([\d\.]+) (\d+) ([\d\.]+) {1,2}([\d\.]+) (\d{2}\.\d{8})(\d{5})(\d)$");
-			std::regex reg_name("^([A-Z]+.*)$");
-			std::smatch matches;
-
-			if (std::regex_search(line, matches, reg_line_one)) {
-				std::cout << "Match found line 1\n";
-
-				for (size_t i = 0; i < matches.size(); ++i) {
-					std::cout << i << ": '" << matches[i].str() << "'\n";
-				}
+			if (cpt % 3 == 0) {
+				line1 = line;
 			}
-			else if (std::regex_search(line, matches, reg_line_two)){
-				std::cout << "Match found line 2\n";
-
-				for (size_t i = 0; i < matches.size(); ++i) {
-					std::cout << i << ": '" << matches[i].str() << "'\n";
-				}
+			else if (cpt % 3 == 1) {
+				line2 = line;
 			}
-			else if (std::regex_search(line, matches, reg_name)) {
-				std::cout << "Match found title\n";
-
-				for (size_t i = 0; i < matches.size(); ++i) {
-					std::cout << i << ": '" << matches[i].str() << "'\n";
-				}
+			else if (cpt % 3 == 2) {
+				line3 = line;
 			}
-			else {
-				std::cout << "No match found" << std::endl;
-			}
+			cpt++;
 		}
 		file_reader.close();
-	}*/
-	orbit_name = "ISS";
-	line_1 = {25544, 98,067,20,336,0.88693861,.00004720, 00000,0,0.93347,4,0,9996};
-	line_2 = { 25544, 52.6470, 238.6835, .0001915, 101.4338,18.8734,15.49130315,25801,5 };
-	//reading data
-	int year;
-	if (line_1[3]>=0 && line_1[3]<=56) {
-		year = 2000 + line_1[3];
 	}
-	else if (line_1[3] >= 57 && line_1[3] <= 99) {
-		year = 1900 + line_1[3];
+	cTle tle_one = cTle(line1, line2, line3);
+	cOrbit orbit = cOrbit(tle_one);
+	time_t now = time(0);
+	tm timer = *gmtime(&now);
+	timer.tm_yday -= 1;
+	time_t min_one_d = mktime(&timer);
+	for (float t = 0; t <= (now - min_one_d) / 60; t++) {
+		//std::cout << t << std::endl;
+		auto v = orbit.GetPosition(orbit.Epoch().SpanMin(cJulian(min_one_d + t * 60))).Position();
+		pos.push_back(vec3(v.m_x, v.m_y, v.m_z));
 	}
+	orbit_one_style.surface_color = rgba(1.0f, 0.7f, 0.3f, 0.5f);
+	orbit_one_style.radius = 0.01f;
 
-	epoch.tm_isdst = -1;
-	epoch.tm_yday = line_1[4];
-	epoch.tm_year = year - 1900;
-	epoch.tm_mon = 0;
-	epoch.tm_hour = line_1[5] * 24.0;
-	epoch.tm_min = (line_1[5] * 24.0 - epoch.tm_hour) * 60;
-	epoch.tm_sec = ((line_1[5] * 24.0 - epoch.tm_hour) * 60 - epoch.tm_min)*60;
-	epoch.tm_mday = 0;
-	epoch.tm_wday = 0;
-	epoch_time = mktime(&epoch);
-
-	orbit_incl = line_2[1] * deg_to_rad;
-	raan = line_2[2] * deg_to_rad;
-	eccentricity = line_2[3];
-	arg_perigee = line_2[4] * deg_to_rad;
-	mean_anom = line_2[5] * deg_to_rad;
-	mean_motion = line_2[6] * rev_per_day_to_rad_per_sec;
-
-	bstar = line_1[9] * pow(10, -1 * line_1[10]);
-
-	//calculating orig mean motion and orig semimaj axis
-	double a1 = pow(ke / (mean_motion), 2.0 / 3.0);
-	double delt1 = 3.0 / 2 * (k2 / pow(a1, 2)) *
-		((3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
-	double a0 = a1 * (1 - (1.0 / 3 * delt1) - pow(delt1, 2) - (134.0 / 81 * pow(delt1, 3)));
-	double delt0 = 3.0 / 2 * (k2 / pow(a0, 2)) *
-		((3 * pow(cos(orbit_incl), 2) - 1) / pow(1 - pow(eccentricity, 2), 3.0 / 2));
-	orig_mean_motion = mean_motion / (1 + delt0);
-	orig_semimaj_axis = a0 / (1 - delt0);
-
-	//calculating perigee and changing the values of s and (q0-s)^4
-	double perigee = (orig_semimaj_axis - earth_radius_at_equator) * (1 - eccentricity) ;
-
-	if (perigee > 98 && perigee < 156) {
-		s_param = orig_semimaj_axis * (1 - eccentricity) - s_density_param + earth_radius_at_equator;
-		q0_min_s_four = pow(pow(pow(q0_density_param - s_density_param, 4), 1.0 / 4) + s_density_param - s_param, 4);
-	}
-	else if (perigee < 98) {
-		s_param = 20.0 / km_per_earth_radii + earth_radius_at_equator;
-		q0_min_s_four = pow(pow(pow(q0_density_param - s_density_param, 4), 1.0 / 4) + s_density_param - s_param, 4);
-	}
-	else {
-		s_param = s_density_param;
-		q0_min_s_four = pow(q0_density_param - s_density_param, 4);
-	}
-	//computing constants
-	theta = std::cos(orbit_incl);
-	xi = 1 / (orig_semimaj_axis - s_param);
-	beta0 = pow(1 - pow(eccentricity, 2), 0.5);
-	eta = orig_semimaj_axis * eccentricity * xi;
-
-	C2 = q0_min_s_four * pow(xi, 4) * orig_mean_motion
-		* pow(1 - pow(eta, 2), -7.0 / 2.0) * (orig_semimaj_axis *
-			(1 + (3.0 / 2 * pow(eta, 2)) + (4 * eccentricity * eta) + (eccentricity * pow(eta, 3)))
-			+ 3.0 / 2 * ((k2 * xi) / (1 - pow(eta, 2))) * (-1.0 / 2 + 3.0 / 2 * pow(theta, 2)) 
-			* (8 + 24 * pow(eta, 2) + 3 * pow(eta, 4)));
-	C1 = bstar * C2;
-	C3 = (q0_min_s_four * pow(xi, 5) * A30 * orig_mean_motion 
-		* earth_radius_at_equator * sin(orbit_incl)) /
-		(k2 * eccentricity);
-	C4 = 2 * orig_mean_motion * q0_min_s_four * pow(xi, 4) * orig_semimaj_axis * pow(beta0, 2)
-		* pow(1 - pow(eta, 2), -7.0 / 2) * ((2 * eta * (1 + eccentricity * eta) + 0.5 * eccentricity + 0.5 * pow(eta, 3))
-			- (2 * k2 * xi) / (orig_semimaj_axis * (1 - pow(eta, 2)))
-			* (3 * (1 - 3 * pow(theta, 2))
-				* (1 + 3.0 / 2 * pow(eta, 2) - 2 * eccentricity * eta 
-					- 0.5 * eccentricity * pow(eta, 3))
-				+ 3.0 / 4 * (1 - pow(theta, 2)) 
-				* (2 * pow(eta, 2) - eccentricity * eta - eccentricity * pow(eta, 3)) 
-				* cos(2 * arg_perigee)));
-	C5 = 2 * q0_min_s_four * pow(xi, 4) * orig_semimaj_axis * pow(beta0, 2) 
-		* pow(1 - pow(eta, 2), -7.0 / 2)
-		* (1 + 11.0 / 4 * eta * (eta + eccentricity) + eccentricity * pow(eta, 3));
-	D2 = 4 * orig_semimaj_axis * xi * pow(C1, 2);
-	D3 = 4.0 / 3 * orig_semimaj_axis * pow(xi, 2) * (17 * orig_semimaj_axis + s_param) * pow(C1, 3);
-	D4 = 2.0 / 3 * orig_semimaj_axis * pow(xi, 3) * (221 * orig_semimaj_axis + 31 * s_param) * pow(C1, 4);
-	//computing secular effects
-	t_min_t0 = difftime(time(0), epoch_time);
-
-	secul_anomaly = mean_anom + (1 + (3 * k2 * (-1 + 3 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 2) * pow(beta0, 3))
-		+ (3 * pow(k2, 2) * (13 - 78 * pow(theta, 2) + 137 * pow(theta, 4)) / (16 * pow(orig_semimaj_axis, 4) * pow(beta0, 7))))
-		* orig_mean_motion * (t_min_t0);
-	secul_arg_perigee = arg_perigee + (-(3 * k2 * (1 - 5 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 2) * pow(beta0, 4))
-		+ (3 * pow(k2, 2) * (7 - 114 * pow(theta, 2) + 395 * pow(theta, 4))) / (16 * pow(orig_semimaj_axis, 4) * pow(beta0, 8))
-		+ (5 * k4 * (3 - 36 * pow(theta, 2) + 49 * pow(theta, 4))) / (4 * pow(orig_semimaj_axis, 4) * pow(beta0, 8)))
-		* orig_mean_motion * t_min_t0;
-	secul_raan = raan + (-(3 * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 4))
-		+ (3 * pow(k2, 2) * (4 * theta - 19 * pow(theta, 3))) / (2 * pow(orig_semimaj_axis, 4) * pow(beta0, 8))
-		+ (5 * k4 * theta * (3 - 7 * pow(theta, 2))) / (2 * pow(orig_semimaj_axis, 4) * pow(beta0, 8)))
-		* orig_mean_motion * t_min_t0;
-	if (perigee >= 220) {
-		delta_arg_perig = bstar * C3 * cos(arg_perigee) * t_min_t0;
-		delta_anom = -2.0 / 3 * q0_min_s_four * bstar * pow(xi, 4) * earth_radius_at_equator / (eccentricity * eta)
-			* (pow(1 + eta * cos(secul_anomaly), 3) - pow(1 + eta * cos(mean_anom), 3));
-		anom_p = secul_anomaly + delta_arg_perig + delta_anom;
-		arg_perigee_fixed = secul_arg_perigee - delta_arg_perig - delta_anom;
-		raan_fixed = secul_raan - 21.0 / 2
-			* (orig_mean_motion * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 2))
-			* C1 * pow(t_min_t0, 2);
-		eccentricity_fixed = eccentricity - bstar * C4 * t_min_t0 - bstar * C5 * (sin(anom_p) - sin(mean_anom));
-
-		semimaj_axis_fixed = orig_semimaj_axis 
-			* pow(1-C1*t_min_t0-D2*pow(t_min_t0,2)-D3*pow(t_min_t0,3)-D4*pow(t_min_t0,4), 2);
-		L = anom_p + arg_perigee_fixed + raan_fixed + orig_mean_motion
-			* (3.0 / 2 * C1 * pow(t_min_t0, 2) + (D2 + 2 * pow(C1, 2)) * pow(t_min_t0, 3)
-				+ 1.0 / 4 * (3 * D3 + 12 * C1 * D2 + 10 * pow(C1, 3)) * pow(t_min_t0, 4)
-				+ 1.0 / 5 * (3 * D4 + 12 * C1 * D3 + 6 * pow(D2, 2) 
-					+ 30 * pow(C1, 2) * D2 + 15 * pow(C1, 4)) * pow(t_min_t0, 5));
-		}
-	else {
-		anom_p = secul_anomaly;
-		arg_perigee_fixed = secul_arg_perigee;
-		raan_fixed = secul_raan - 21.0 / 2
-			* (orig_mean_motion * k2 * theta) / (pow(orig_semimaj_axis, 2) * pow(beta0, 2))
-			* C1 * pow(t_min_t0, 2);
-		eccentricity_fixed = eccentricity - bstar * C4 * t_min_t0;
-		semimaj_axis_fixed = orig_semimaj_axis * pow(1 - C1 * t_min_t0, 2);
-		L = anom_p + arg_perigee_fixed + raan_fixed + orig_mean_motion * 3.0 / 2 * C1 * pow(t_min_t0, 2);
-	}
-	beta = pow(1 - pow(eccentricity_fixed, 2), 0.5);
-	mean_motion_fixed = ke / pow(semimaj_axis_fixed, 2.0 / 3);
-
-	//long-period periodic terms
-	a_x_N = eccentricity_fixed * cos(arg_perigee_fixed);
-	L_L = (A30 * sin(orbit_incl)) / (8 * k2 * semimaj_axis_fixed * pow(beta, 2))
-		* (eccentricity_fixed * cos(arg_perigee_fixed))
-		* ((3 + 5 * theta) / (1 + theta));
-	a_y_N_L = (A30 * sin(orbit_incl)) / (4 * k2 * semimaj_axis_fixed * pow(beta, 2));
-	L_T = L + L_L;
-	a_y_N = eccentricity_fixed * sin(arg_perigee_fixed) + a_y_N_L;
-
-	//Solve Kepler's equations for (E+lower_omeg)
-	U = L_T - raan_fixed;
-	temp2 = U;
-	for (int i = 0; i < 30; i++) {
-		sinEpw = sin(temp2);
-		cosEpw = cos(temp2);
-		temp3 = a_x_N * sinEpw;
-		temp4 = a_y_N * cosEpw;
-		temp5 = a_x_N * cosEpw;
-		temp6 = a_y_N * sinEpw;
-		Epw = (U - temp4 + temp3 - temp2) / (1 - temp5 - temp6) + temp2;
-		if (abs(Epw - temp2) < pow(10, -6))
-			break;
-		temp2 = Epw;
-	}
-	//prelim for short-period periodics
-	ecosE = a_x_N * cos(Epw) + a_y_N * sin(Epw);
-	esinE = a_x_N * sin(Epw) + a_y_N * cos(Epw);
-	e_L = pow(pow(a_x_N,2) + pow(a_y_N,2), 0.5);
-	p_L = semimaj_axis_fixed * (1 - pow(e_L, 2));
-	r = semimaj_axis_fixed * (1 - ecosE);
-	r_dot = ke * pow(semimaj_axis_fixed, 0.5) / r * esinE;
-	r_f_dot = ke * pow(p_L, 0.5) / r;
-	cos_u = semimaj_axis_fixed / r * (cos(Epw) - a_x_N + (a_y_N * esinE) / (1 + pow(1 - pow(e_L, 2), 0.5)));
-	sin_u = semimaj_axis_fixed / r * (sin(Epw) - a_y_N - (a_x_N * esinE) / (1 + pow(1 - pow(e_L, 2), 0.5)));
-	u = atan(sin_u / cos_u);
-	delt_r = k2 / (2 * p_L) * (1 - pow(theta, 2)) * cos(2 * u);
-	delt_u = -k2 / (4 * pow(p_L, 2)) * (7 * pow(theta, 2) - 1) * sin(2 * u);
-	delt_raan = (3 * k2 * theta) / (2 * pow(p_L, 2)) * sin(2 * u);
-	delt_incl = (3 * k2 * theta) / (2 * pow(p_L, 2)) * sin(orbit_incl) * cos(2 * u);
-	delt_r_dot = -(k2 * mean_motion_fixed) / p_L * (1 - pow(theta, 2)) * sin(2 * u);
-	delt_r_f_dot = (k2 * mean_motion_fixed) / p_L 
-		* ((1 - pow(theta, 2)) * cos(2 * u) - 3.0 / 2 * (1 - 3 * pow(theta, 2)));
-	//short-period periodics
-	r_k = r * (1 - 3.0 / 2 * k2 * pow(1 - pow(e_L, 2), 0.5) / pow(p_L, 2) * (3 * pow(theta, 2) - 1)) 
-		+ delt_r;
-	u_k = u + delt_u;
-	raan_k = raan_fixed + delt_raan;
-	incl_k = orbit_incl + delt_incl;
-	r_dot_k = r_dot + delt_r_dot;
-	r_f_dot_k = r_f_dot + delt_r_f_dot;
-	//unit orientation vectors
-	vec_M = vec3(-1*sin(raan_k)*cos(incl_k),cos(raan_k)*cos(incl_k),sin(incl_k));
-	vec_N = vec3(cos(raan_k), sin(raan_k), 0);
-	vec_U = vec_M * sin(u_k) + vec_N * cos(u_k);
-	vec_V = vec_M * cos(u_k) - vec_N * sin(u_k);
-	pos_r = vec_U * r_k;
-	veloc_r_dot = vec_U * r_dot_k + vec_V * r_f_dot_k;
-
-	std::cout << pos_r << std::endl;
-
-	orbit_one = cgv::render::rounded_cone_renderer();
-	orbit_one.set_position_array(ctx, std::vector<vec3>({ pos_r }));
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
@@ -1083,48 +788,17 @@ void vr_test::draw(cgv::render::context& ctx)
 	// actually draw the mesh
 	earth_info.draw_all(ctx);
 
-
 	// restore the previous transform
-
 	ctx.pop_modelview_matrix();
 
-	orbit_one.draw(ctx,0,1);
+	orbit_one = cgv::render::rounded_cone_renderer();
+	orbit_one.set_render_style(orbit_one_style);
+	orbit_one.set_position_array(ctx, pos);
 
-	/*cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
-	
-	// draw dynamic boxes 
-	renderer.set_render_style(movable_style);
-	renderer.set_box_array(ctx, movable_boxes);
-	renderer.set_color_array(ctx, movable_box_colors);
-	renderer.set_translation_array(ctx, movable_box_translations);
-	renderer.set_rotation_array(ctx, movable_box_rotations);
-	if (renderer.validate_and_enable(ctx)) {
-		if (show_seethrough) {
-			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-			renderer.draw(ctx, 0, 3);
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			//renderer.draw(ctx, 3, movable_boxes.size() - 3);
-		}
-		//else
-			//renderer.draw(ctx, 0, movable_boxes.size());
-	}
-	renderer.disable(ctx);*/
+	orbit_one.validate_and_enable(ctx);
+	orbit_one.draw(ctx,0,pos.size());
+	orbit_one.disable(ctx);
 
-	// draw static boxes
-	/*renderer.set_render_style(style);
-	renderer.set_box_array(ctx, boxes);
-	renderer.set_color_array(ctx, box_colors);
-	renderer.render(ctx, 0, boxes.size());*/
-
-
-	// draw intersection points
-	/*if (!intersection_points.empty()) {
-		auto& sr = cgv::render::ref_sphere_renderer(ctx);
-		sr.set_position_array(ctx, intersection_points);
-		sr.set_color_array(ctx, intersection_colors);
-		sr.set_render_style(srs);
-		sr.render(ctx, 0, intersection_points.size());
-	}*/
 
 	// draw label
 	if (vr_view_ptr && label_tex.is_created()) {
