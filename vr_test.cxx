@@ -728,7 +728,48 @@ bool vr_test::init(cgv::render::context& ctx)
 	beta = pow(1 - pow(eccentricity_fixed, 2), 0.5);
 	mean_motion_fixed = ke / pow(semimaj_axis_fixed, 2.0 / 3);
 
+	//long-period periodic terms
+	a_x_N = eccentricity_fixed * cos(arg_perigee_fixed);
+	L_L = (A30 * sin(orbit_incl * deg_to_rad)) / (8 * k2 * semimaj_axis_fixed * pow(beta, 2))
+		* (eccentricity_fixed * cos(arg_perigee_fixed))
+		* ((3 + 5 * theta) / (1 + theta));
+	a_y_N_L = (A30 * sin(orbit_incl * deg_to_rad)) / (4 * k2 * semimaj_axis_fixed * pow(beta, 2));
+	L_T = L + L_L;
+	a_y_N = eccentricity_fixed * sin(arg_perigee_fixed) + a_y_N_L;
 
+	//Solve Kepler's equations for (E+lower_omeg)
+	U = L_T - raan_fixed;
+	temp2 = U;
+	for (int i = 0; i < 30; i++) {
+		sinEpw = sin(temp2);
+		cosEpw = cos(temp2);
+		temp3 = a_x_N * sinEpw;
+		temp4 = a_y_N * cosEpw;
+		temp5 = a_x_N * cosEpw;
+		temp6 = a_y_N * sinEpw;
+		Epw = (U - temp4 + temp3 - temp2) / (1 - temp5 - temp6) + temp2;
+		if (abs(Epw - temp2) < pow(10, -6))
+			break;
+		temp2 = Epw;
+	}
+	//prelim for short-period periodics
+	ecosE = a_x_N * cos(Epw) + a_y_N * sin(Epw);
+	esinE = a_x_N * sin(Epw) + a_y_N * cos(Epw);
+	e_L = pow(pow(a_x_N,2) + pow(a_y_N,2), 0.5);
+	p_L = semimaj_axis_fixed * (1 - pow(e_L, 2));
+	r = semimaj_axis_fixed * (1 - ecosE);
+	r_dot = ke * pow(semimaj_axis_fixed, 0.5) / r * esinE;
+	r_f_dot = ke * pow(p_L, 0.5) / r;
+	cos_u = semimaj_axis_fixed / r * (cos(Epw) - a_x_N + (a_y_N * esinE) / (1 + pow(1 - pow(e_L, 2), 0.5)));
+	sin_u = semimaj_axis_fixed / r * (sin(Epw) - a_y_N - (a_x_N * esinE) / (1 + pow(1 - pow(e_L, 2), 0.5)));
+	u = atan(sin_u / cos_u);
+	delt_r = k2 / (2 * p_L) * (1 - pow(theta, 2)) * cos(2 * u);
+	delt_u = -k2 / (4 * pow(p_L, 2)) * (7 * pow(theta, 2) - 1) * sin(2 * u);
+	delt_raan = (3 * k2 * theta) / (2 * pow(p_L, 2)) * sin(2 * u);
+	delt_incl = (3 * k2 * theta) / (2 * pow(p_L, 2)) * sin(orbit_incl) * cos(2 * u);
+	delt_r_dot = -(k2 * mean_motion_fixed) / p_L * (1 - pow(theta, 2)) * sin(2 * u);
+	delt_r_f_dot = (k2 * mean_motion_fixed) / p_L 
+		* ((1 - pow(theta, 2)) * cos(2 * u) - 3.0 / 2 * (1 - 3 * pow(theta, 2)));
 
 
 	cgv::render::ref_box_renderer(ctx, 1);

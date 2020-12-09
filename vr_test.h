@@ -96,7 +96,16 @@ protected:
 	double delta_arg_perig,delta_anom;
 	double anom_p,arg_perigee_fixed,raan_fixed,eccentricity_fixed, semimaj_axis_fixed;
 	double L, beta, mean_motion_fixed;
-
+	//long-period periodic terms
+	double a_x_N, L_L, a_y_N_L, L_T, a_y_N;
+	//kepler's equation's terms
+	double U, temp2, temp3, temp4, temp5, temp6;
+	double sinEpw, cosEpw, Epw;
+	//prelim for short-period periodics
+	double ecosE, esinE, e_L, p_L;
+	double r, r_dot, r_f_dot;
+	double cos_u, sin_u, u;
+	double delt_r, delt_u, delt_raan, delt_incl, delt_r_dot, delt_r_f_dot;
 
 	// rendering styles
 	cgv::render::box_render_style style;
