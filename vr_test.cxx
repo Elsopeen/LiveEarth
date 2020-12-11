@@ -450,13 +450,13 @@ bool vr_test::init(cgv::render::context& ctx)
 	ground_from_space.set_uniform(ctx, "s2Tex2", 1);
 	ground_from_space.disable(ctx);*/
 
-	if (earth_sphere.read(get_input_directory() + "models/sphere_36_cuts.obj")) {
+	if (earth_sphere.read(get_input_directory() + "/models/sphere_36_cuts.obj")) {
 		earth_info.construct(ctx, earth_sphere);
 		earth_info.bind(ctx, ctx.ref_surface_shader_program(true), true);
 		auto& mats = earth_info.get_materials();
 		if (mats.size() > 0) {
 			//setup texture paths
-			int di = mats[0]->add_image_file("../../../src/images/earthmap.jpg");
+			int di = mats[0]->add_image_file(get_input_directory()+"/images/earthmap.jpg");
 			
 			//ensure the textures are loaded
 			mats[0]->ensure_textures(ctx);
@@ -491,12 +491,13 @@ bool vr_test::init(cgv::render::context& ctx)
 	cOrbit orbit = cOrbit(tle_one);
 	time_t now = time(0);
 	tm timer = *gmtime(&now);
-	timer.tm_yday -= 1;
-	time_t min_one_d = mktime(&timer);
-	for (float t = 0; t <= (now - min_one_d) / 60; t++) {
+	timer.tm_isdst = -1;
+	timer.tm_sec -= 24.0 * 3600.0 / tle_one.GetField(tle_one.FLD_MMOTION);
+	time_t min_one_rev = mktime(&timer);
+	for (float t = 0; t <= (now - min_one_rev); t++) {
 		//std::cout << t << std::endl;
-		auto v = orbit.GetPosition(orbit.Epoch().SpanMin(cJulian(min_one_d + t * 60))).Position();
-		pos.push_back(vec3(v.m_x, v.m_y, v.m_z));
+		auto v = orbit.GetPosition(orbit.Epoch().SpanMin(cJulian(min_one_rev + t))).Position() ;
+		pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
 	}
 	orbit_one_style.surface_color = rgba(1.0f, 0.7f, 0.3f, 0.5f);
 	orbit_one_style.radius = 0.01f;
@@ -779,10 +780,11 @@ void vr_test::draw(cgv::render::context& ctx)
 
 
 	// translate and scale
-	double R = 0.5;
+	double R = 1.0;
 	ctx.mul_modelview_matrix(
-		cgv::math::translate4<double>(vec3(0,0,0))*
-		cgv::math::scale4<double>(dvec3(vec3(1,1,1)))*R
+		cgv::math::translate4<double>(vec3(0, 0, 0))*
+		cgv::math::scale4<double>(dvec3(vec3(1, 1, 1)* R))*
+		cgv::math::rotate4<double>(-23.4, vec3(1,0,0))
 	);
 
 	// actually draw the mesh
@@ -791,7 +793,7 @@ void vr_test::draw(cgv::render::context& ctx)
 	// restore the previous transform
 	ctx.pop_modelview_matrix();
 
-	orbit_one = cgv::render::rounded_cone_renderer();
+	orbit_one = cgv::render::ref_rounded_cone_renderer(ctx);
 	orbit_one.set_render_style(orbit_one_style);
 	orbit_one.set_position_array(ctx, pos);
 
