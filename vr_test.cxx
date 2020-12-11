@@ -488,7 +488,7 @@ bool vr_test::init(cgv::render::context& ctx)
 		file_reader.close();
 	}
 	cTle tle_one = cTle(line1, line2, line3);
-	cOrbit orbit = cOrbit(tle_one);
+	cSatellite sat = cSatellite(tle_one, &tle_one.Name());
 	time_t now = time(0);
 	tm timer = *gmtime(&now);
 	timer.tm_isdst = -1;
@@ -496,7 +496,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	time_t min_one_rev = mktime(&timer);
 	for (float t = 0; t <= (now - min_one_rev); t++) {
 		//std::cout << t << std::endl;
-		auto v = orbit.GetPosition(orbit.Epoch().SpanMin(cJulian(min_one_rev + t))).Position() ;
+		auto v = sat.PositionEci(sat.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position() ;
 		pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
 	}
 	orbit_one_style.surface_color = rgba(1.0f, 0.7f, 0.3f, 0.5f);
