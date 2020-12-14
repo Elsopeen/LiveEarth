@@ -11,6 +11,7 @@
 #include <cgv_gl/rounded_cone_renderer.h>
 #include <cgv/render/frame_buffer.h>
 #include <cgv/defines/quote.h>
+#include <cgv_gl/point_renderer.h>
 
 #include <math.h>
 #include "orbittools/coreLib.h"
@@ -57,7 +58,11 @@ protected:
 	//Line renderer for one orbit data
 	cgv::render::rounded_cone_renderer orbit_one;
 	cgv::render::rounded_cone_render_style orbit_one_style;
-	std::vector<vec3> pos;
+	cgv::render::point_renderer ptx;
+	cgv::render::point_render_style ptx_style;
+	std::vector<cTle> tles;
+	std::vector<pair<cSatellite, bool>> sats;
+	std::vector<std::vector<vec3>> pos;
 
 	// rendering styles
 	cgv::render::box_render_style style;

@@ -468,7 +468,7 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	//to finish later
 	std::string line, line1, line2, line3;
-	std::ifstream file_reader(get_input_directory()+"/sat_data/station.txt");
+	std::ifstream file_reader(get_input_directory()+"/sat_data/stations.txt");
 	int cpt = 0;
 	if (file_reader.is_open())
 	{
@@ -482,30 +482,49 @@ bool vr_test::init(cgv::render::context& ctx)
 			}
 			else if (cpt % 3 == 2) {
 				line3 = line;
+				tles.push_back(cTle(line1, line2, line3));
 			}
 			cpt++;
 		}
 		file_reader.close();
 	}
-	cTle tle_one = cTle(line1, line2, line3);
-	cSatellite sat = cSatellite(tle_one, &tle_one.Name());
-	time_t now = time(0);
-	tm timer = *gmtime(&now);
-	timer.tm_isdst = -1;
-	timer.tm_sec -= 24.0 * 3600.0 / tle_one.GetField(tle_one.FLD_MMOTION);
-	time_t min_one_rev = mktime(&timer);
-	for (float t = 0; t <= (now - min_one_rev); t++) {
-		//std::cout << t << std::endl;
-		auto v = sat.PositionEci(sat.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position() ;
-		pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+	cpt = 0;
+	for (cTle tle : tles) {
+		if(cpt==0)
+			sats.push_back(pair<cSatellite, bool>(cSatellite(tle, &tle.Name()),true));
+		else
+			sats.push_back(pair<cSatellite, bool>(cSatellite(tle, &tle.Name()), false));
+		cpt++;
+	}
+	pos = std::vector<std::vector<vec3>>(sats.size());
+	for (int c = 0; c < sats.size(); c++) {
+		time_t now = time(0);
+		tm timer = *gmtime(&now);
+		timer.tm_isdst = -1;
+		timer.tm_sec -= (1.0 / sats[c].first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
+		time_t min_one_rev = mktime(&timer);
+		for (float t = 0; t <= (now - min_one_rev); t++) {
+			//std::cout << t << std::endl;
+			auto v = sats[c].first.PositionEci(sats[c].first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
+			if (t == 0 || t == (now - min_one_rev - 1)) {
+				pos[c].push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+			}
+			else {
+				pos[c].push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+				pos[c].push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+			}
+		}
+		
 	}
 	orbit_one_style.surface_color = rgba(1.0f, 0.7f, 0.3f, 0.5f);
 	orbit_one_style.radius = 0.01f;
-
+	ptx_style.point_size = 5.0f;
+	ptx_style.halo_color = rgba(1.0f, 0.0f, 1.0f, 1.0f);
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
 	cgv::render::ref_rounded_cone_renderer(ctx, 1);
+	cgv::render::ref_point_renderer(ctx, 1);
 	return true;
 }
 
@@ -514,6 +533,7 @@ void vr_test::clear(cgv::render::context& ctx)
 	cgv::render::ref_box_renderer(ctx, -1);
 	cgv::render::ref_sphere_renderer(ctx, -1);
 	cgv::render::ref_rounded_cone_renderer(ctx, -1);
+	cgv::render::ref_point_renderer(ctx, -1);
 }
 
 void vr_test::init_frame(cgv::render::context& ctx)
@@ -793,13 +813,30 @@ void vr_test::draw(cgv::render::context& ctx)
 	// restore the previous transform
 	ctx.pop_modelview_matrix();
 
-	orbit_one = cgv::render::ref_rounded_cone_renderer(ctx);
-	orbit_one.set_render_style(orbit_one_style);
-	orbit_one.set_position_array(ctx, pos);
+	//draw orbits and satellites
+	for(int i = 0; i< pos.size();i++) {
+		if (sats[i].second) { //orbit for selected satellites
+			orbit_one = cgv::render::ref_rounded_cone_renderer(ctx);
+			orbit_one.set_render_style(orbit_one_style);
+			orbit_one.set_position_array(ctx, pos[i]);
 
-	orbit_one.validate_and_enable(ctx);
-	orbit_one.draw(ctx,0,pos.size());
-	orbit_one.disable(ctx);
+			orbit_one.validate_and_enable(ctx);
+			orbit_one.draw(ctx, 0, pos[i].size());
+			orbit_one.disable(ctx);
+		}
+		else { //position only
+			ptx = cgv::render::ref_point_renderer(ctx);
+			auto posi = std::vector<vec3>({ pos[i].back() });
+			ptx.set_render_style(ptx_style);
+			ptx.set_position_array(ctx, posi);
+			ptx.validate_and_enable(ctx);
+			ptx.draw(ctx, 0, posi.size());
+			ptx.disable(ctx);
+		}
+	}
+		
+	
+
 
 
 	// draw label
