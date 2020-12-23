@@ -62,7 +62,11 @@ protected:
 	cgv::render::point_render_style ptx_style;
 	std::vector<cTle> tles;
 	std::vector<pair<cSatellite, bool>> sats;
+	std::vector<pair<string, std::vector<pair<cSatellite, bool>>>> satellites;
+	std::vector<pair<string, cgv::render::rounded_cone_render_style>> orbit_styles;
+	std::vector<pair<string, cgv::render::point_render_style>> sat_styles;
 	std::vector<std::vector<vec3>> pos;
+	bool is_active;
 
 	// rendering styles
 	cgv::render::box_render_style style;

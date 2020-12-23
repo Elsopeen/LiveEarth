@@ -14,6 +14,7 @@
 
 #include <random>
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <regex>
 #include <iterator>
@@ -466,7 +467,9 @@ bool vr_test::init(cgv::render::context& ctx)
 		}
 	}
 
-	//to finish later
+	/**	
+	* First draw of reading the data
+	*/
 	std::string line, line1, line2, line3;
 	std::ifstream file_reader(get_input_directory()+"/sat_data/stations.txt");
 	int cpt = 0;
@@ -520,6 +523,51 @@ bool vr_test::init(cgv::render::context& ctx)
 	orbit_one_style.radius = 0.01f;
 	ptx_style.point_size = 5.0f;
 	ptx_style.halo_color = rgba(1.0f, 0.0f, 1.0f, 1.0f);
+
+	/**
+	* Reading all files from directory
+	*/
+	srand(time(0));
+	satellites = std::vector<pair<string, std::vector<pair<cSatellite, bool>>>>();
+	orbit_styles = std::vector<pair<string, cgv::render::rounded_cone_render_style>>();
+	sat_styles = std::vector<pair<string, cgv::render::point_render_style>>();
+	string path = get_input_directory() + "/sat_data/";
+	auto result = std::filesystem::directory_iterator(path);
+	for (const auto& entry : result) {
+		std::string line, line1, line2, line3;
+		std::ifstream file_reader(entry.path());
+		int cpt = 0;
+		std::vector<pair<cSatellite, bool>> satels = std::vector<pair<cSatellite, bool>>();
+		if (file_reader.is_open())
+		{
+			while (std::getline(file_reader, line))
+			{
+				if (cpt % 3 == 0) {
+					line1 = line;
+				}
+				else if (cpt % 3 == 1) {
+					line2 = line;
+				}
+				else if (cpt % 3 == 2) {
+					line3 = line;
+					satels.push_back(pair<cSatellite,bool>(cSatellite(cTle(line1, line2, line3)), false));
+				}
+				cpt++;
+			}
+			file_reader.close();
+		}
+		cpt = 0;
+		satellites.push_back(pair<string, std::vector<pair<cSatellite, bool>>>(entry.path().filename().string(), satels));
+		cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
+		rend.surface_color = rgba(rand()%256, rand()%256, rand()%256, 1);
+		rend.radius = 0.01f;
+		orbit_styles.push_back(pair<string, cgv::render::rounded_cone_render_style>(entry.path().filename().string(), rend));
+		cgv::render::point_render_style rend_ptx = cgv::render::point_render_style();
+		rend_ptx.point_size = 5.0f;
+		rend_ptx.halo_color = rend.surface_color;
+		sat_styles.push_back(pair<string, cgv::render::point_render_style>(entry.path().filename().string(), rend_ptx));
+	}
+
 
 	cgv::render::ref_box_renderer(ctx, 1);
 	cgv::render::ref_sphere_renderer(ctx, 1);
@@ -997,6 +1045,12 @@ void vr_test::create_gui() {
 		add_member_control(this, "resolution", (cgv::type::DummyEnum&)label_resolution, "dropdown", "enums='256=256,512=512,1024=1024,2048=2048'");
 		align("\b");
 		end_tree_node(label_size);
+	}
+
+	if (begin_tree_node("Datasets", is_active)) {
+		align("\a");
+		align("\b");
+		end_tree_node(is_active);
 	}
 }
 
