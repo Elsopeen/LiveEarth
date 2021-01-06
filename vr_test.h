@@ -56,15 +56,16 @@ protected:
 	cgv::media::mesh::simple_mesh<> earth_sphere;
 
 	//Line renderer for one orbit data
-	cgv::render::rounded_cone_renderer orbit_one;
-	cgv::render::rounded_cone_render_style orbit_one_style;
+	cgv::render::rounded_cone_renderer orbit;
+	cgv::render::rounded_cone_render_style orbit_style;
 	cgv::render::point_renderer ptx;
 	cgv::render::point_render_style ptx_style;
 	std::vector<cTle> tles;
 	std::vector<pair<cSatellite, bool>> sats;
-	std::vector<pair<string, std::vector<pair<cSatellite, bool>>>> satellites;
-	std::vector<pair<string, cgv::render::rounded_cone_render_style>> orbit_styles;
-	std::vector<pair<string, cgv::render::point_render_style>> sat_styles;
+	std::map<string, bool> actives;
+	std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
+	std::map<string, cgv::render::rounded_cone_render_style> orbit_styles;
+	std::map<string, cgv::render::point_render_style> sat_styles;
 	std::vector<std::vector<vec3>> pos;
 	bool is_active;
 

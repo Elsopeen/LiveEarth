@@ -14,10 +14,10 @@
 
 #include <random>
 #include <iostream>
-#include <filesystem>
 #include <fstream>
 #include <regex>
 #include <iterator>
+#include <Windows.h>
 
 #include "intersection.h"
 
@@ -379,6 +379,32 @@ bool vr_test::handle(cgv::gui::event& e)
 	return false;
 }
 
+vector<string> get_all_files_names_within_folder(string folder)
+{
+	vector<string> names = vector<string>();
+	string search_path = folder + "/*.*";
+	std::wstring wc(search_path.size(), L'#');
+	mbstowcs(&wc[0], search_path.c_str(), search_path.size());
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = ::FindFirstFile(wc.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				wstring ws(fd.cFileName);
+				string filename(ws.begin(), ws.end());
+				names.push_back(filename);
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+	}
+	else {
+		std::cerr << GetLastError() << std::endl;
+	}
+	return names;
+}
+
 bool vr_test::init(cgv::render::context& ctx)
 {
 	if (!cgv::utils::has_option("NO_OPENVR"))
@@ -470,7 +496,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	/**	
 	* First draw of reading the data
 	*/
-	std::string line, line1, line2, line3;
+	/*std::string line, line1, line2, line3;
 	std::ifstream file_reader(get_input_directory()+"/sat_data/stations.txt");
 	int cpt = 0;
 	if (file_reader.is_open())
@@ -522,20 +548,21 @@ bool vr_test::init(cgv::render::context& ctx)
 	orbit_one_style.surface_color = rgba(1.0f, 0.7f, 0.3f, 0.5f);
 	orbit_one_style.radius = 0.01f;
 	ptx_style.point_size = 5.0f;
-	ptx_style.halo_color = rgba(1.0f, 0.0f, 1.0f, 1.0f);
+	ptx_style.halo_color = rgba(1.0f, 0.0f, 1.0f, 1.0f);*/
 
 	/**
 	* Reading all files from directory
 	*/
 	srand(time(0));
-	satellites = std::vector<pair<string, std::vector<pair<cSatellite, bool>>>>();
-	orbit_styles = std::vector<pair<string, cgv::render::rounded_cone_render_style>>();
-	sat_styles = std::vector<pair<string, cgv::render::point_render_style>>();
-	string path = get_input_directory() + "/sat_data/";
-	auto result = std::filesystem::directory_iterator(path);
+	actives = std::map<string, bool>();
+	satellites = std::map<string, std::vector<pair<cSatellite, bool>>>();
+	orbit_styles = std::map<string, cgv::render::rounded_cone_render_style>();
+	sat_styles = std::map<string, cgv::render::point_render_style>();
+	string path = get_input_directory() + "/sat_data";
+	auto result = get_all_files_names_within_folder(path);
 	for (const auto& entry : result) {
 		std::string line, line1, line2, line3;
-		std::ifstream file_reader(entry.path());
+		std::ifstream file_reader(path+"/"+entry);
 		int cpt = 0;
 		std::vector<pair<cSatellite, bool>> satels = std::vector<pair<cSatellite, bool>>();
 		if (file_reader.is_open())
@@ -557,15 +584,16 @@ bool vr_test::init(cgv::render::context& ctx)
 			file_reader.close();
 		}
 		cpt = 0;
-		satellites.push_back(pair<string, std::vector<pair<cSatellite, bool>>>(entry.path().filename().string(), satels));
+		actives.insert(pair<string, bool>(entry, false));
+		satellites.insert(pair<string, std::vector<pair<cSatellite, bool>>>(entry, satels));
 		cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
 		rend.surface_color = rgba(rand()%256, rand()%256, rand()%256, 1);
 		rend.radius = 0.01f;
-		orbit_styles.push_back(pair<string, cgv::render::rounded_cone_render_style>(entry.path().filename().string(), rend));
+		orbit_styles.insert(pair<string, cgv::render::rounded_cone_render_style>(entry, rend));
 		cgv::render::point_render_style rend_ptx = cgv::render::point_render_style();
 		rend_ptx.point_size = 5.0f;
 		rend_ptx.halo_color = rend.surface_color;
-		sat_styles.push_back(pair<string, cgv::render::point_render_style>(entry.path().filename().string(), rend_ptx));
+		sat_styles.insert(pair<string, cgv::render::point_render_style>(entry, rend_ptx));
 	}
 
 
@@ -862,15 +890,63 @@ void vr_test::draw(cgv::render::context& ctx)
 	ctx.pop_modelview_matrix();
 
 	//draw orbits and satellites
+	for (auto datasets_entry : actives) { //all datasets
+		if (datasets_entry.second) { //if dataset selected
+			auto sats = satellites.at(datasets_entry.first); //find satellites list
+			for (auto sat_entry : sats){ //for all satellites in the list
+				std::vector<vec3> pos = std::vector<vec3>();
+				time_t now = time(0);
+				if (sat_entry.second) { //if satellite selected for orbit drawn
+					orbit = cgv::render::ref_rounded_cone_renderer(ctx);
+					orbit.set_render_style(orbit_styles.at(datasets_entry.first));
+					/**
+					* Calculation of one revolution orbit
+					*/
+
+					tm timer = *gmtime(&now);
+					timer.tm_isdst = -1;
+					timer.tm_sec -= (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60; //calculate time one orbit earlier
+					time_t min_one_rev = mktime(&timer);
+					for (float t = 0; t <= (now - min_one_rev); t++) {
+						//std::cout << t << std::endl;
+						auto v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
+						if (t == 0 || t == (now - min_one_rev - 1)) {
+							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+						}
+						else {
+							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+						}
+					}
+					orbit.set_position_array(ctx, pos);
+
+					orbit.validate_and_enable(ctx);
+					orbit.draw(ctx, 0, pos.size());
+					orbit.disable(ctx);
+				}
+				else { //if satellite not selected for orbit
+					ptx = cgv::render::ref_point_renderer(ctx);
+					ptx.set_render_style(sat_styles.at(datasets_entry.first));
+					auto v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(now))).Position();
+					pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+					ptx.set_position_array(ctx, pos);
+
+					ptx.validate_and_enable(ctx);
+					ptx.draw(ctx, 0, pos.size());
+					ptx.disable(ctx);
+				}
+			}
+		}
+	}
 	for(int i = 0; i< pos.size();i++) {
 		if (sats[i].second) { //orbit for selected satellites
-			orbit_one = cgv::render::ref_rounded_cone_renderer(ctx);
-			orbit_one.set_render_style(orbit_one_style);
-			orbit_one.set_position_array(ctx, pos[i]);
+			orbit = cgv::render::ref_rounded_cone_renderer(ctx);
+			orbit.set_render_style(orbit_style);
+			orbit.set_position_array(ctx, pos[i]);
 
-			orbit_one.validate_and_enable(ctx);
-			orbit_one.draw(ctx, 0, pos[i].size());
-			orbit_one.disable(ctx);
+			orbit.validate_and_enable(ctx);
+			orbit.draw(ctx, 0, pos[i].size());
+			orbit.disable(ctx);
 		}
 		else { //position only
 			ptx = cgv::render::ref_point_renderer(ctx);
@@ -1049,6 +1125,9 @@ void vr_test::create_gui() {
 
 	if (begin_tree_node("Datasets", is_active)) {
 		align("\a");
+		for (auto dataset_entry : actives) {
+			add_member_control(this, dataset_entry.first, dataset_entry.second);
+		}
 		align("\b");
 		end_tree_node(is_active);
 	}
