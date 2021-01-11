@@ -554,7 +554,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	* Reading all files from directory
 	*/
 	srand(time(0));
-	actives = std::map<string, bool>();
+	actives = std::vector<pair<string, bool>>();
 	satellites = std::map<string, std::vector<pair<cSatellite, bool>>>();
 	orbit_styles = std::map<string, cgv::render::rounded_cone_render_style>();
 	sat_styles = std::map<string, cgv::render::point_render_style>();
@@ -584,7 +584,7 @@ bool vr_test::init(cgv::render::context& ctx)
 			file_reader.close();
 		}
 		cpt = 0;
-		actives.insert(pair<string, bool>(entry, false));
+		actives.push_back(pair<string, bool>(entry, false));
 		satellites.insert(pair<string, std::vector<pair<cSatellite, bool>>>(entry, satels));
 		cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
 		rend.surface_color = rgba(rand()%256, rand()%256, rand()%256, 1);
@@ -909,31 +909,52 @@ void vr_test::draw(cgv::render::context& ctx)
 					time_t min_one_rev = mktime(&timer);
 					for (float t = 0; t <= (now - min_one_rev); t++) {
 						//std::cout << t << std::endl;
-						auto v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
-						if (t == 0 || t == (now - min_one_rev - 1)) {
-							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+						cVector v;
+						try {
+
+							v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
+							if (t == 0 || t == (now - min_one_rev - 1)) {
+								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+							}
+							else {
+								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+							}
+
+							orbit.set_position_array(ctx, pos);
+
+							orbit.validate_and_enable(ctx);
+							orbit.draw(ctx, 0, pos.size());
+							orbit.disable(ctx);
+
 						}
-						else {
-							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
-							pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+						catch (cDecayException e) {
+							//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
+						}
+						catch (cPropagationException e) {
+							//std::cerr << e.Message() << std::endl;
 						}
 					}
-					orbit.set_position_array(ctx, pos);
-
-					orbit.validate_and_enable(ctx);
-					orbit.draw(ctx, 0, pos.size());
-					orbit.disable(ctx);
 				}
 				else { //if satellite not selected for orbit
 					ptx = cgv::render::ref_point_renderer(ctx);
 					ptx.set_render_style(sat_styles.at(datasets_entry.first));
-					auto v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(now))).Position();
-					pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
-					ptx.set_position_array(ctx, pos);
+					cVector v;
+					try {
+						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(now))).Position();
+						pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+						ptx.set_position_array(ctx, pos);
 
-					ptx.validate_and_enable(ctx);
-					ptx.draw(ctx, 0, pos.size());
-					ptx.disable(ctx);
+						ptx.validate_and_enable(ctx);
+						ptx.draw(ctx, 0, pos.size());
+						ptx.disable(ctx);
+					}
+					catch (cDecayException e) {
+						//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
+					}
+					catch (cPropagationException e) {
+						//std::cerr << e.Message() << std::endl;
+					}
 				}
 			}
 		}
@@ -1125,8 +1146,8 @@ void vr_test::create_gui() {
 
 	if (begin_tree_node("Datasets", is_active)) {
 		align("\a");
-		for (auto dataset_entry : actives) {
-			add_member_control(this, dataset_entry.first, dataset_entry.second);
+		for (int cpt = 0; cpt < actives.size(); cpt++) {
+			add_member_control(this, actives[cpt].first, actives[cpt].second);
 		}
 		align("\b");
 		end_tree_node(is_active);
