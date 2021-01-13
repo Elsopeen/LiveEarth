@@ -477,6 +477,20 @@ bool vr_test::init(cgv::render::context& ctx)
 	ground_from_space.set_uniform(ctx, "s2Tex2", 1);
 	ground_from_space.disable(ctx);*/
 
+	/**
+	* Time interval 
+	*/
+	visual_now = time(0);
+	tm v_min_2_tm = *gmtime(&visual_now);
+	v_min_2_tm.tm_year -= 2;
+	v_min_2 = mktime(&v_min_2_tm);
+	tm v_plus_2_tm = *gmtime(&visual_now);
+	v_plus_2_tm.tm_year += 2;
+	v_plus_2 = mktime(&v_plus_2_tm);
+
+	/**
+	* Construction of Earth
+	*/
 	if (earth_sphere.read(get_input_directory() + "/models/sphere_36_cuts.obj")) {
 		earth_info.construct(ctx, earth_sphere);
 		earth_info.bind(ctx, ctx.ref_surface_shader_program(true), true);
@@ -895,7 +909,6 @@ void vr_test::draw(cgv::render::context& ctx)
 			auto sats = satellites.at(datasets_entry.first); //find satellites list
 			for (auto sat_entry : sats){ //for all satellites in the list
 				std::vector<vec3> pos = std::vector<vec3>();
-				time_t now = time(0);
 				if (sat_entry.second) { //if satellite selected for orbit drawn
 					orbit = cgv::render::ref_rounded_cone_renderer(ctx);
 					orbit.set_render_style(orbit_styles.at(datasets_entry.first));
@@ -903,17 +916,17 @@ void vr_test::draw(cgv::render::context& ctx)
 					* Calculation of one revolution orbit
 					*/
 
-					tm timer = *gmtime(&now);
+					tm timer = *gmtime(&visual_now);
 					timer.tm_isdst = -1;
 					timer.tm_sec -= (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60; //calculate time one orbit earlier
 					time_t min_one_rev = mktime(&timer);
-					for (float t = 0; t <= (now - min_one_rev); t++) {
+					for (float t = 0; t <= (visual_now - min_one_rev); t++) {
 						//std::cout << t << std::endl;
 						cVector v;
 						try {
 
 							v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
-							if (t == 0 || t == (now - min_one_rev - 1)) {
+							if (t == 0 || t == (visual_now - min_one_rev - 1)) {
 								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
 							}
 							else {
@@ -941,7 +954,7 @@ void vr_test::draw(cgv::render::context& ctx)
 					ptx.set_render_style(sat_styles.at(datasets_entry.first));
 					cVector v;
 					try {
-						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(now))).Position();
+						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position();
 						pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
 						ptx.set_position_array(ctx, pos);
 
@@ -1143,6 +1156,16 @@ void vr_test::create_gui() {
 		align("\b");
 		end_tree_node(label_size);
 	}
+
+	align("\a");
+	std::stringstream ss;
+	ss << v_min_2;
+	std::string ts = ss.str();
+	std::stringstream ss_plus;
+	ss_plus << v_plus_2;
+	std::string ts_plus = ss_plus.str();
+	add_member_control(this, "Time selection", visual_now, "value_slider", "min="+ts+";step=1;max="+ts_plus+";log=true;ticks=true");
+	align("\b");
 
 	if (begin_tree_node("Datasets", is_active)) {
 		align("\a");

@@ -68,6 +68,8 @@ protected:
 	std::map<string, cgv::render::point_render_style> sat_styles;
 	std::vector<std::vector<vec3>> pos;
 	bool is_active;
+	time_t visual_now;
+	time_t v_min_2, v_plus_2;
 
 	// rendering styles
 	cgv::render::box_render_style style;
