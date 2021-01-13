@@ -488,6 +488,8 @@ bool vr_test::init(cgv::render::context& ctx)
 	v_plus_2_tm.tm_year += 2;
 	v_plus_2 = mktime(&v_plus_2_tm);
 
+	old_time = visual_now - 1000000;
+
 	/**
 	* Construction of Earth
 	*/
@@ -609,6 +611,9 @@ bool vr_test::init(cgv::render::context& ctx)
 		rend_ptx.halo_color = rend.surface_color;
 		sat_styles.insert(pair<string, cgv::render::point_render_style>(entry, rend_ptx));
 	}
+
+	//sat_pos = std::map<cSatellite, std::vector<vec3>>();
+	//sat_orbit_pos = std::map<cSatellite, std::vector<vec3>>();
 
 
 	cgv::render::ref_box_renderer(ctx, 1);
@@ -908,68 +913,89 @@ void vr_test::draw(cgv::render::context& ctx)
 		if (datasets_entry.second) { //if dataset selected
 			auto sats = satellites.at(datasets_entry.first); //find satellites list
 			for (auto sat_entry : sats){ //for all satellites in the list
-				std::vector<vec3> pos = std::vector<vec3>();
+				std::vector<vec3> pos = std::vector<vec3>(); double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
 				if (sat_entry.second) { //if satellite selected for orbit drawn
-					orbit = cgv::render::ref_rounded_cone_renderer(ctx);
-					orbit.set_render_style(orbit_styles.at(datasets_entry.first));
 					/**
 					* Calculation of one revolution orbit
 					*/
 
 					tm timer = *gmtime(&visual_now);
 					timer.tm_isdst = -1;
-					timer.tm_sec -= (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60; //calculate time one orbit earlier
+					
+					timer.tm_sec -= rev_time; //calculate time one orbit earlier
 					time_t min_one_rev = mktime(&timer);
-					for (float t = 0; t <= (visual_now - min_one_rev); t++) {
-						//std::cout << t << std::endl;
-						cVector v;
-						try {
+					if (old_time > (visual_now + 3*rev_time) || old_time < (visual_now - 3*rev_time) || sat_pos.find(sat_entry.first.Name()) == sat_pos.end()) {
+						for (float t = 0; t <= (visual_now - min_one_rev); t++) {
+							//std::cout << t << std::endl;
+							cVector v;
+							try {
 
-							v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
-							if (t == 0 || t == (visual_now - min_one_rev - 1)) {
-								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
+								if (t == 0 || t == (visual_now - min_one_rev - 1)) {
+									pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								}
+								else {
+									pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+									pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								}
+
 							}
-							else {
-								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
-								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+							catch (cDecayException e) {
+								std::vector<vec3> vec = std::vector<vec3>();
+								vec.push_back(vec3());
+								sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
+								//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
 							}
-
-							orbit.set_position_array(ctx, pos);
-
-							orbit.validate_and_enable(ctx);
-							orbit.draw(ctx, 0, pos.size());
-							orbit.disable(ctx);
-
+							catch (cPropagationException e) {
+								std::vector<vec3> vec = std::vector<vec3>();
+								vec.push_back(vec3());
+								sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
+								//std::cerr << e.Message() << std::endl;
+							}
 						}
-						catch (cDecayException e) {
-							//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
-						}
-						catch (cPropagationException e) {
-							//std::cerr << e.Message() << std::endl;
-						}
+						sat_orbit_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), pos));
 					}
-				}
-				else { //if satellite not selected for orbit
-					ptx = cgv::render::ref_point_renderer(ctx);
-					ptx.set_render_style(sat_styles.at(datasets_entry.first));
+					if (sat_orbit_pos.find(sat_entry.first.Name()) != sat_orbit_pos.end()) {
+						orbit = cgv::render::ref_rounded_cone_renderer(ctx);
+						orbit.set_render_style(orbit_styles.at(datasets_entry.first));
+						orbit.set_position_array(ctx, sat_orbit_pos.at(sat_entry.first.Name()));
+
+						orbit.validate_and_enable(ctx);
+						orbit.draw(ctx, 0, sat_orbit_pos.at(sat_entry.first.Name()).size());
+						orbit.disable(ctx);
+					}
+				} //if satellite not selected for orbit
+				if (old_time > (visual_now + 3 * rev_time) || old_time < (visual_now - 3 * rev_time) || sat_pos.find(sat_entry.first.Name()) == sat_pos.end()) {
 					cVector v;
 					try {
 						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position();
-						pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
-						ptx.set_position_array(ctx, pos);
-
-						ptx.validate_and_enable(ctx);
-						ptx.draw(ctx, 0, pos.size());
-						ptx.disable(ctx);
+						pos.push_back(vec3(v.m_x / (6378.0F), v.m_y / (6378.0F), v.m_z / (6378.0F)));
+						sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), pos));
 					}
 					catch (cDecayException e) {
+						std::vector<vec3> vec = std::vector<vec3>();
+						vec.push_back(vec3());
+						sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
 						//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
 					}
 					catch (cPropagationException e) {
+						std::vector<vec3> vec = std::vector<vec3>();
+						vec.push_back(vec3());
+						sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
 						//std::cerr << e.Message() << std::endl;
 					}
 				}
+				if (sat_pos.find(sat_entry.first.Name()) != sat_pos.end()) {
+					ptx = cgv::render::ref_point_renderer(ctx);
+					ptx.set_render_style(sat_styles.at(datasets_entry.first));
+					ptx.set_position_array(ctx, sat_pos.at(sat_entry.first.Name()));
+					ptx.validate_and_enable(ctx);
+
+					ptx.draw(ctx, 0, sat_pos.at(sat_entry.first.Name()).size());
+					ptx.disable(ctx);
+				}
 			}
+			old_time = visual_now;
 		}
 	}
 	for(int i = 0; i< pos.size();i++) {
@@ -994,7 +1020,6 @@ void vr_test::draw(cgv::render::context& ctx)
 	}
 		
 	
-
 
 
 	// draw label

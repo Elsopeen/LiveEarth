@@ -67,8 +67,11 @@ protected:
 	std::map<string, cgv::render::rounded_cone_render_style> orbit_styles;
 	std::map<string, cgv::render::point_render_style> sat_styles;
 	std::vector<std::vector<vec3>> pos;
+	std::map<string, std::vector<vec3>> sat_pos;
+	std::map<string, std::vector<vec3>> sat_orbit_pos;
 	bool is_active;
 	time_t visual_now;
+	time_t old_time;
 	time_t v_min_2, v_plus_2;
 
 	// rendering styles
