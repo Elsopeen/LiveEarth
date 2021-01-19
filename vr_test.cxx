@@ -612,7 +612,8 @@ bool vr_test::init(cgv::render::context& ctx)
 		rend_ptx.radius = 0.025F;
 		sat_styles.insert(pair<string, cgv::render::sphere_render_style>(entry, rend_ptx));
 	}
-
+	ptx_style = cgv::render::sphere_render_style();
+	ptx_style.radius = 0.025F;
 	//sat_pos = std::map<cSatellite, std::vector<vec3>>();
 	//sat_orbit_pos = std::map<cSatellite, std::vector<vec3>>();
 
@@ -665,7 +666,7 @@ void vr_test::calculate_positions_and_orbits() {
 							std::vector<vec3> vec = std::vector<vec3>();
 							vec.push_back(vec3());
 							sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
-							//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
+							std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
 						}
 						catch (cPropagationException e) {
 							std::vector<vec3> vec = std::vector<vec3>();
@@ -691,7 +692,7 @@ void vr_test::calculate_positions_and_orbits() {
 					std::vector<vec3> vec = std::vector<vec3>();
 					vec.push_back(vec3());
 					sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
-					//std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
+					std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
 				}
 				catch (cPropagationException e) {
 					std::vector<vec3> vec = std::vector<vec3>();

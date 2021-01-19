@@ -59,7 +59,7 @@ protected:
 	cgv::render::rounded_cone_renderer orbit;
 	cgv::render::rounded_cone_render_style orbit_style;
 	cgv::render::sphere_renderer ptx;
-	cgv::render::point_render_style ptx_style;
+	cgv::render::sphere_render_style ptx_style;
 	std::vector<cTle> tles;
 	std::vector<pair<cSatellite, bool>> sats;
 	std::vector<pair<string, bool>> actives;
