@@ -993,12 +993,18 @@ void vr_test::draw(cgv::render::context& ctx)
 	ctx.pop_modelview_matrix();
 
 
-	//TODO 
-	if (old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24) {
+	//Draw of orbits and satellites
+	int calc_actives=0;
+	for (pair<string, bool> p : actives) {
+		if (p.second)
+			calc_actives++;
+	}
+	if (old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24 || calc_actives!=nb_active) {
 		calculate_positions_and_orbits();
+		nb_active = calc_actives;
 	}
 	if (all_pos_orbit.size() !=0) { //orbit for selected satellites
-		orbit = cgv::render::ref_rounded_cone_renderer(ctx);
+		auto &orbit = cgv::render::ref_rounded_cone_renderer(ctx);
 		orbit.set_render_style(orbit_style);
 		orbit.set_position_array(ctx, all_pos_orbit);
 		orbit.set_color_array(ctx, all_colors_orbit);
@@ -1008,7 +1014,7 @@ void vr_test::draw(cgv::render::context& ctx)
 		orbit.disable(ctx);
 	}
 	if(all_pos_sat.size() !=0) { //position only
-		ptx = cgv::render::ref_sphere_renderer(ctx);
+		auto &ptx = cgv::render::ref_sphere_renderer(ctx);
 		ptx.set_render_style(ptx_style);
 		ptx.set_position_array(ctx, all_pos_sat);
 		ptx.set_color_array(ctx, all_colors_sat);
