@@ -58,17 +58,22 @@ protected:
 	//Line renderer for one orbit data
 	cgv::render::rounded_cone_renderer orbit;
 	cgv::render::rounded_cone_render_style orbit_style;
-	cgv::render::point_renderer ptx;
+	cgv::render::sphere_renderer ptx;
 	cgv::render::point_render_style ptx_style;
 	std::vector<cTle> tles;
 	std::vector<pair<cSatellite, bool>> sats;
 	std::vector<pair<string, bool>> actives;
 	std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
 	std::map<string, cgv::render::rounded_cone_render_style> orbit_styles;
-	std::map<string, cgv::render::point_render_style> sat_styles;
+	std::map<string, cgv::render::sphere_render_style> sat_styles;
 	std::vector<std::vector<vec3>> pos;
 	std::map<string, std::vector<vec3>> sat_pos;
 	std::map<string, std::vector<vec3>> sat_orbit_pos;
+	std::vector<vec3> all_pos_sat;
+	std::vector<vec3> all_pos_orbit;
+	std::vector<vec3> all_colors_sat;
+	std::vector<vec3> all_colors_orbit;
+
 	bool is_active;
 	time_t visual_now;
 	time_t old_time;
@@ -199,6 +204,8 @@ public:
 	//void construct_movable_boxes(float tw, float td, float th, float tW, size_t nr);
 	/// construct a scene with a table
 	void build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW);
+
+	
 public:
 	vr_test();
 
@@ -211,6 +218,9 @@ public:
 	bool handle(cgv::gui::event& e);
 	
 	bool init(cgv::render::context& ctx);
+	
+	void calculate_positions_and_orbits();
+
 
 	void clear(cgv::render::context& ctx);
 
