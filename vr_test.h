@@ -69,6 +69,7 @@ protected:
 	std::map<string, std::vector<vec3>> sat_pos;
 	std::map<string, std::vector<vec3>> sat_orbit_pos;
 	std::vector<vec3> all_pos_sat;
+	std::vector<std::pair<string, vec3>> names_plus_pos;
 	std::vector<vec3> all_pos_orbit;
 	std::vector<vec3> all_colors_sat;
 	std::vector<vec3> all_colors_orbit;
@@ -220,6 +221,7 @@ public:
 	
 	void calculate_positions_and_orbits();
 
+	string intersection(vec3 origin, vec3 direction);
 
 	void clear(cgv::render::context& ctx);
 

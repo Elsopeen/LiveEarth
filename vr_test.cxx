@@ -315,6 +315,33 @@ bool vr_test::handle(cgv::gui::event& e)
 		// check for controller pose events
 		int ci = vrpe.get_trackable_index();
 		if (ci != -1) {
+			vec3 origin, direction;
+			vrpe.get_state().controller[ci].put_ray(&origin(0), &direction(0));
+			string result = intersection(origin, direction); 
+			vector<string> res = vector<string>();
+			std::string delimiter = "*&_";
+
+			size_t pos = 0;
+			while ((pos = result.find(delimiter)) != std::string::npos) {
+				res.push_back(result.substr(0, pos));
+				result.erase(0, pos + delimiter.length());
+			}
+			if (res.size() == 2) {
+				for (auto j = satellites.begin(); j != satellites.end(); j++) {
+					if (j->first == res[0]) {
+						for (int i = 0; i < j->second.size(); i++) {
+							if (j->second[i].first.Name() == res[1]) {
+								if (state[ci] == IS_GRAB) {
+									j->second[i].second = true;
+									calculate_positions_and_orbits();
+								}
+							}
+
+						}
+					}
+				}
+				
+			}
 			/*if (state[ci] == IS_GRAB) {
 				// in grab mode apply relative transformation to grabbed boxes
 
@@ -490,6 +517,8 @@ bool vr_test::init(cgv::render::context& ctx)
 
 	old_time = visual_now - 1000000;
 
+
+
 	/**
 	* Construction of Earth
 	*/
@@ -630,6 +659,7 @@ void vr_test::calculate_positions_and_orbits() {
 	all_pos_orbit = std::vector<vec3>();
 	all_colors_sat = std::vector<vec3>();
 	all_colors_orbit = std::vector<vec3>();
+	names_plus_pos = std::vector<pair<string, vec3>>();
 	//draw orbits and satellites
 	for (auto datasets_entry : actives) { //all datasets
 		if (datasets_entry.second) { //if dataset selected
@@ -687,6 +717,7 @@ void vr_test::calculate_positions_and_orbits() {
 					sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), pos));
 					col_pos.push_back(vec3(sat_styles.at(datasets_entry.first).surface_color.R(), sat_styles.at(datasets_entry.first).surface_color.G(),
 						sat_styles.at(datasets_entry.first).surface_color.B()));
+					names_plus_pos.push_back(pair<string, vec3>(datasets_entry.first + "*&_" + sat_entry.first.Name(), vec3(v.m_x / (6378.0F), v.m_y / (6378.0F), v.m_z / (6378.0F))));
 				}
 				catch (cDecayException e) {
 					std::vector<vec3> vec = std::vector<vec3>();
@@ -705,6 +736,20 @@ void vr_test::calculate_positions_and_orbits() {
 			}
 		}
 	}
+}
+
+string vr_test::intersection(vec3 origin, vec3 direction) {
+	for (int i = 0; i < 100000; i++) {
+		vec3 dest = origin + direction * i;
+		for (pair<string, vec3> sat : names_plus_pos) {
+			if ((dest.x() < sat.second.x() + 2 && dest.x() > sat.second.x() - 2)
+				&& (dest.y() < sat.second.y() + 2 && dest.y() > sat.second.y() - 2)
+				&& (dest.z() < sat.second.z() + 2 && dest.z() > sat.second.z() - 2)) {
+				return sat.first;
+			}
+		}
+	}
+	return "";
 }
 
 void vr_test::clear(cgv::render::context& ctx)
