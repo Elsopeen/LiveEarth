@@ -277,6 +277,19 @@ bool vr_test::handle(cgv::gui::event& e)
 		cgv::gui::vr_throttle_event& vrte = static_cast<cgv::gui::vr_throttle_event&>(e);
 		std::cout << "throttle " << vrte.get_throttle_index() << " of controller " << vrte.get_controller_index()
 			<< " adjusted from " << vrte.get_last_value() << " to " << vrte.get_value() << std::endl;
+		if (vrte.get_throttle_index() == 1 && vrte.get_value() > 0.5f) {
+			grabber_throttle_1 = 1;
+		}
+		else {
+			grabber_throttle_1 = 0;
+		}
+		if (vrte.get_throttle_index() == 2 && vrte.get_value() > 0.5f) {
+			grabber_throttle_2 = 2;
+		}
+		else {
+			grabber_throttle_2 = 0;
+		}
+			
 		return true;
 	}
 	case cgv::gui::EID_STICK:
@@ -285,10 +298,12 @@ bool vr_test::handle(cgv::gui::event& e)
 		switch (vrse.get_action()) {
 		case cgv::gui::SA_TOUCH:
 			if (state[vrse.get_controller_index()] == IS_OVER)
+				label_text += "\n\nStick of controller" + to_string(vrse.get_controller_index()) + "is touched\n";
 				state[vrse.get_controller_index()] = IS_GRAB;
 			break;
 		case cgv::gui::SA_RELEASE:
 			if (state[vrse.get_controller_index()] == IS_GRAB)
+				label_text = "Info Board";
 				state[vrse.get_controller_index()] = IS_OVER;
 			break;
 		case cgv::gui::SA_PRESS:
@@ -300,7 +315,6 @@ bool vr_test::handle(cgv::gui::event& e)
 			return true;
 		case cgv::gui::SA_MOVE:
 		case cgv::gui::SA_DRAG:
-			return true;
 			std::cout << "stick " << vrse.get_stick_index()
 				<< " of controller " << vrse.get_controller_index()
 				<< " " << cgv::gui::get_stick_action_string(vrse.get_action())
@@ -326,13 +340,18 @@ bool vr_test::handle(cgv::gui::event& e)
 				res.push_back(result.substr(0, pos));
 				result.erase(0, pos + delimiter.length());
 			}
+			res.push_back(result);
 			if (res.size() == 2) {
 				for (auto j = satellites.begin(); j != satellites.end(); j++) {
 					if (j->first == res[0]) {
 						for (int i = 0; i < j->second.size(); i++) {
 							if (j->second[i].first.Name() == res[1]) {
-								if (state[ci] == IS_GRAB) {
+								if (grabber_throttle_1 == 1 && !(j->second[i].second)) {
 									j->second[i].second = true;
+									calculate_positions_and_orbits();
+								}
+								else if (grabber_throttle_2 == 2 && (j->second[i].second)) {
+									j->second[i].second = false;
 									calculate_positions_and_orbits();
 								}
 							}
@@ -478,6 +497,8 @@ bool vr_test::init(cgv::render::context& ctx)
 			vr_view_ptr->set_blit_vr_view_width(200);
 		}
 	}
+	grabber_throttle_1 = 0;
+	grabber_throttle_2 = 0;
 
 	/*ground_from_space.create(ctx);
 	ground_from_space.attach_dir(ctx, "../../../src/shaders/groundfromspace/", true);
@@ -642,7 +663,9 @@ bool vr_test::init(cgv::render::context& ctx)
 		sat_styles.insert(pair<string, cgv::render::sphere_render_style>(entry, rend_ptx));
 	}
 	ptx_style = cgv::render::sphere_render_style();
-	ptx_style.radius = 0.025F;
+	ptx_style.radius = 0.0125F;
+	orbit_style = cgv::render::rounded_cone_render_style();
+	orbit_style.radius = ptx_style.radius / 2;
 	//sat_pos = std::map<cSatellite, std::vector<vec3>>();
 	//sat_orbit_pos = std::map<cSatellite, std::vector<vec3>>();
 
@@ -683,14 +706,18 @@ void vr_test::calculate_positions_and_orbits() {
 
 							v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
 							if (t == 0 || t == (visual_now - min_one_rev - 1)) {
-								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378))); 
+								col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
+									orbit_styles.at(datasets_entry.first).surface_color.B()));
 							}
 							else {
 								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
 								pos.push_back(vec3(v.m_x / (6378), v.m_y / (6378), v.m_z / (6378)));
+								col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
+									orbit_styles.at(datasets_entry.first).surface_color.B()));
+								col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
+										orbit_styles.at(datasets_entry.first).surface_color.B()));
 							}
-							col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
-								orbit_styles.at(datasets_entry.first).surface_color.B()));
 						}
 						catch (cDecayException e) {
 							std::vector<vec3> vec = std::vector<vec3>();
@@ -710,6 +737,7 @@ void vr_test::calculate_positions_and_orbits() {
 					all_colors_orbit.insert(all_colors_orbit.end(), col_pos.begin(), col_pos.end());
 				} //if satellite not selected for orbit
 				cVector v;
+				pos = std::vector<vec3>();
 				std::vector<vec3> col_pos = std::vector<vec3>();
 				try {
 					v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position();
@@ -739,14 +767,11 @@ void vr_test::calculate_positions_and_orbits() {
 }
 
 string vr_test::intersection(vec3 origin, vec3 direction) {
-	for (int i = 0; i < 100000; i++) {
-		vec3 dest = origin + direction * i;
-		for (pair<string, vec3> sat : names_plus_pos) {
-			if ((dest.x() < sat.second.x() + 2 && dest.x() > sat.second.x() - 2)
-				&& (dest.y() < sat.second.y() + 2 && dest.y() > sat.second.y() - 2)
-				&& (dest.z() < sat.second.z() + 2 && dest.z() > sat.second.z() - 2)) {
-				return sat.first;
-			}
+	for (auto entry : names_plus_pos) {
+		float dist = cgv::math::length(cgv::math::cross(entry.second - origin, direction)) 
+			/ cgv::math::length(direction);
+		if (dist < 2 * ptx_style.radius) {
+			return entry.first;
 		}
 	}
 	return "";

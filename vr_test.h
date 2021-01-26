@@ -74,6 +74,9 @@ protected:
 	std::vector<vec3> all_colors_sat;
 	std::vector<vec3> all_colors_orbit;
 
+	int grabber_throttle_1;
+	int grabber_throttle_2;
+
 	bool is_active;
 	time_t visual_now;
 	time_t old_time;
