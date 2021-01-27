@@ -47,6 +47,7 @@ protected:
 		IS_GRAB
 	};
 
+
 	// store the scene as colored boxes
 	/*std::vector<box3> boxes;
 	std::vector<rgb> box_colors;*/
@@ -76,6 +77,10 @@ protected:
 
 	int grabber_throttle_1;
 	int grabber_throttle_2;
+
+	bool pause; //false play true pause
+	bool backward; //false forward true backward
+	time_t ticker;
 
 	bool is_active;
 	time_t visual_now;

@@ -268,6 +268,15 @@ bool vr_test::handle(cgv::gui::event& e)
 			case vr::VR_DPAD_RIGHT:
 				std::cout << "touch pad of " << (vrke.get_controller_index() == 0 ? "left" : "right") << " controller pressed at right direction" << std::endl;
 				return true;
+			case vr::VR_A:
+				label_text = "\n is ";
+				backward = !backward;
+				if (backward)
+					label_text += "backward";
+				else
+					label_text += "forward";
+				label_outofdate = true;
+				return true;
 			}
 		}
 		break;
@@ -307,11 +316,19 @@ bool vr_test::handle(cgv::gui::event& e)
 				state[vrse.get_controller_index()] = IS_OVER;
 			break;
 		case cgv::gui::SA_PRESS:
+			label_text = "\n is ";
+			pause = !pause;
+			if (pause)
+				label_text += "paused";
+			else
+				label_text += "playing";
+			label_outofdate = true;
 		case cgv::gui::SA_UNPRESS:
 			std::cout << "stick " << vrse.get_stick_index()
 				<< " of controller " << vrse.get_controller_index()
 				<< " " << cgv::gui::get_stick_action_string(vrse.get_action())
 				<< " at " << vrse.get_x() << ", " << vrse.get_y() << std::endl;
+
 			return true;
 		case cgv::gui::SA_MOVE:
 		case cgv::gui::SA_DRAG:
@@ -499,6 +516,9 @@ bool vr_test::init(cgv::render::context& ctx)
 	}
 	grabber_throttle_1 = 0;
 	grabber_throttle_2 = 0;
+	pause = true;
+	backward = false;
+	ticker = time(0);
 
 	/*ground_from_space.create(ctx);
 	ground_from_space.attach_dir(ctx, "../../../src/shaders/groundfromspace/", true);
@@ -1069,7 +1089,18 @@ void vr_test::draw(cgv::render::context& ctx)
 		if (p.second)
 			calc_actives++;
 	}
-	if (old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24 || calc_actives!=nb_active) {
+	if (!pause) { //if animation played
+		if (std::abs(ticker - time(0)) > 10) { //tick for 10 secs
+			ticker = time(0);
+			if (backward)
+				visual_now -= 60; //advance animation by one minute
+			else
+				visual_now += 60; //backwards by one minute
+
+			calculate_positions_and_orbits();
+		}
+	}
+	if (/*old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24 ||*/ calc_actives!=nb_active) {
 		calculate_positions_and_orbits();
 		nb_active = calc_actives;
 	}
@@ -1095,7 +1126,7 @@ void vr_test::draw(cgv::render::context& ctx)
 	}
 	
 
-	old_time = visual_now;
+	//old_time = visual_now;
 	
 
 
