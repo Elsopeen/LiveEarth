@@ -83,54 +83,7 @@ protected:
 	bool back; //false forward true backward
 	cgv::gui::trigger trig;
 	time_t ticker;
-	class change_time {
-		protected:
-			int increment;
-			time_t* v;
-			std::vector<vec3>* aps;
-			std::vector<vec3>* apo;
-			std::vector<vec3>* acs;
-			std::vector<vec3>* aco;
-			std::vector<pair<string, vec3>>* npp;
-			std::vector<pair<string, bool>>* a;
-			std::map<string, std::vector<pair<cSatellite, bool>>>* s;
-			std::map<string, cgv::render::rounded_cone_render_style>* os;
-			std::map<string, cgv::render::sphere_render_style>* ss;
-		public:
-			change_time(): increment(0), v(0), aps(0), apo(0), acs(0), aco(0),
-				npp(0), a(0), s(0), os(0), ss(0)
-			{};
-			change_time(int inc, time_t* vis, std::vector<vec3>* all_pos_sat, std::vector<vec3>* all_pos_orbit,
-				std::vector<vec3>* all_colors_sat, std::vector<vec3>* all_colors_orbit, std::vector<pair<string, vec3>>* names_plus_pos,
-				std::vector<pair<string, bool>>* actives, std::map<string, std::vector<pair<cSatellite, bool>>>* satellites,
-				std::map<string, cgv::render::rounded_cone_render_style>* orbit_styles, std::map<string, cgv::render::sphere_render_style>* sat_styles) 
-				: increment(inc), v(vis), aps(all_pos_sat), apo(all_pos_orbit), acs(all_colors_sat), aco(all_colors_orbit),
-				npp(names_plus_pos), a(actives), s(satellites), os(orbit_styles), ss(sat_styles)
-			{};
-
-			change_time* operator= (const change_time c) {
-				this->v = c.v;
-				this->increment = c.increment;
-				this->aps = c.aps;
-				this->apo = c.apo;
-				this->acs = c.acs;
-				this->aco = c.aco;
-				this->npp = c.npp;
-				this->a = c.a;
-				this->s = c.s;
-				this->os = c.os;
-				this->ss = c.ss;
-				return this;
-			};
-
-			void operator() () const {
-				*v += increment;
-				calculate_positions_and_orbits(aps, apo, acs, aco,
-					npp, a, v, s, os, ss);
-			};
-	};
-	change_time forward;
-	change_time backward;
+	int incr;
 	bool is_active;
 	time_t visual_now;
 	time_t old_time;
@@ -289,10 +242,7 @@ public:
 	/// <param name="satellites">list of sats</param>
 	/// <param name="orbit_styles">list of styles</param>
 	/// <param name="sat_styles">list of styles</param>
-	static void calculate_positions_and_orbits(std::vector<vec3>* all_pos_sat, std::vector<vec3>* all_pos_orbit,
-		std::vector<vec3>* all_colors_sat, std::vector<vec3>* all_colors_orbit, std::vector<pair<string, vec3>>* names_plus_pos,
-		std::vector<pair<string, bool>>* actives, time_t* visual_now, std::map<string, std::vector<pair<cSatellite, bool>>>* satellites,
-		std::map<string, cgv::render::rounded_cone_render_style>* orbit_styles, std::map<string, cgv::render::sphere_render_style>* sat_styles);
+	void calculate_positions_and_orbits();
 
 	string intersection(vec3 origin, vec3 direction);
 
@@ -300,9 +250,7 @@ public:
 
 	void init_frame(cgv::render::context& ctx);
 
-	void change_time_pos();
-
-	void change_time_neg();
+	void change_time(double, double dt);
 
 	void draw(cgv::render::context& ctx);
 
