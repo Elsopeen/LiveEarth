@@ -223,6 +223,11 @@ vr_test::vr_test()
 	}
 	font_enum_decl += "'";
 	state[0] = state[1] = state[2] = state[3] = IS_NONE;
+
+	trig = cgv::gui::trigger();
+	forward = change_time(60, &visual_now);
+	backward = change_time(-60, &visual_now);
+	cgv::signal::connect(trig.shoot, &forward);
 }
 	
 void vr_test::stream_help(std::ostream& os) {
@@ -263,18 +268,24 @@ bool vr_test::handle(cgv::gui::event& e)
 		if (vrke.get_action() != cgv::gui::KA_RELEASE) {
 			switch (vrke.get_key()) {
 			case vr::VR_GRIP:
-				std::cout << "grip button " << (vrke.get_controller_index() == 0 ? "left":"right") << " controller pressed" << std::endl;
+				std::cout << "grip button " << (vrke.get_controller_index() == 0 ? "left" : "right") << " controller pressed" << std::endl;
 				return true;
 			case vr::VR_DPAD_RIGHT:
 				std::cout << "touch pad of " << (vrke.get_controller_index() == 0 ? "left" : "right") << " controller pressed at right direction" << std::endl;
 				return true;
 			case vr::VR_A:
 				label_text = "\n is ";
-				backward = !backward;
-				if (backward)
+				back = !back;
+				if (back) {
 					label_text += "backward";
-				else
+					cgv::signal::disconnect(trig.shoot, change_time_pos);
+					cgv::signal::connect(trig.shoot, &change_time_neg);
+				}
+				else {
 					label_text += "forward";
+					cgv::signal::disconnect(trig.shoot, &change_time_neg);
+					cgv::signal::connect(trig.shoot, &change_time_pos);
+				}
 				label_outofdate = true;
 				return true;
 			}
@@ -318,10 +329,15 @@ bool vr_test::handle(cgv::gui::event& e)
 		case cgv::gui::SA_PRESS:
 			label_text = "\n is ";
 			pause = !pause;
-			if (pause)
+			if (pause) {
 				label_text += "paused";
-			else
+				trig.stop();
+			}
+			else {
 				label_text += "playing";
+				if (trig.schedule_recuring(10))
+					label_text += "\n started";
+			}
 			label_outofdate = true;
 		case cgv::gui::SA_UNPRESS:
 			std::cout << "stick " << vrse.get_stick_index()
@@ -517,7 +533,7 @@ bool vr_test::init(cgv::render::context& ctx)
 	grabber_throttle_1 = 0;
 	grabber_throttle_2 = 0;
 	pause = true;
-	backward = false;
+	back = false;
 	ticker = time(0);
 
 	/*ground_from_space.create(ctx);
@@ -925,6 +941,16 @@ void vr_test::init_frame(cgv::render::context& ctx)
 	}
 }
 
+void vr_test::change_time_pos() {
+	visual_now += 60;
+	calculate_positions_and_orbits();
+}
+
+void vr_test::change_time_neg() {
+	visual_now -= 60;
+	calculate_positions_and_orbits();
+}
+
 void vr_test::draw(cgv::render::context& ctx)
 {
 	if (MI.is_constructed()) {
@@ -1088,7 +1114,7 @@ void vr_test::draw(cgv::render::context& ctx)
 	for (pair<string, bool> p : actives) {
 		if (p.second)
 			calc_actives++;
-	}
+	}/*
 	if (!pause) { //if animation played
 		if (std::abs(ticker - time(0)) > 10) { //tick for 10 secs
 			ticker = time(0);
@@ -1099,7 +1125,7 @@ void vr_test::draw(cgv::render::context& ctx)
 
 			calculate_positions_and_orbits();
 		}
-	}
+	}*/
 	if (/*old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24 ||*/ calc_actives!=nb_active) {
 		calculate_positions_and_orbits();
 		nb_active = calc_actives;

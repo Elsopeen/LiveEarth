@@ -3,6 +3,7 @@
 #include <cgv/render/drawable.h>
 #include <cgv/gui/provider.h>
 #include <cgv/gui/event_handler.h>
+#include <cgv/gui/trigger.h>
 #include <cgv_gl/box_renderer.h>
 #include <cgv_gl/gl/mesh_render_info.h>
 #include <cgv_gl/sphere_renderer.h>
@@ -79,9 +80,29 @@ protected:
 	int grabber_throttle_2;
 
 	bool pause; //false play true pause
-	bool backward; //false forward true backward
+	bool back; //false forward true backward
+	cgv::gui::trigger trig;
 	time_t ticker;
+	class change_time {
+		protected:
+			int increment;
+			time_t* v;
+		public:
+			change_time() {};
+			change_time(int inc, time_t* vis) : increment(inc), v(vis) {};
 
+			change_time& operator= (const change_time& c) {
+				this->v = c.v;
+				this->increment = c.increment;
+			};
+
+			void operator() () const {
+				*v += increment;
+				calculate_positions_and_orbits();
+			};
+	};
+	change_time forward;
+	change_time backward;
 	bool is_active;
 	time_t visual_now;
 	time_t old_time;
@@ -235,6 +256,10 @@ public:
 
 	void init_frame(cgv::render::context& ctx);
 
+	void change_time_pos();
+
+	void change_time_neg();
+
 	void draw(cgv::render::context& ctx);
 
 	void finish_draw(cgv::render::context& ctx);
@@ -242,5 +267,8 @@ public:
 	void create_gui();
 
 };
+
+
+
 
 ///@}
