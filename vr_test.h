@@ -27,6 +27,8 @@
 
 // these are the vr specific headers
 #include <vr/vr_driver.h>
+#include <vr/vr_state.h>
+#include <vr/vr_kit.h>
 #include <cg_vr/vr_server.h>
 #include <vr_view_interactor.h>
 #include <vr_render_helpers.h>
@@ -36,7 +38,8 @@ class vr_test :
 	public cgv::base::node,
 	public cgv::render::drawable,
 	public cgv::gui::event_handler,
-	public cgv::gui::provider {
+	public cgv::gui::provider
+{
 protected:
 	static std::string get_input_directory() {
 		return QUOTE_SYMBOL_VALUE(INPUT_DIR);
@@ -51,9 +54,8 @@ protected:
 
 	// store the scene as colored boxes
 	/*std::vector<box3> boxes;
-	std::vector<rgb> box_colors;*/
-
-	//Mesh renderer for earth
+		std::vector<rgb> box_colors;*/
+		//Mesh renderer for earth
 	cgv::render::mesh_render_info earth_info;
 	cgv::media::mesh::simple_mesh<> earth_sphere;
 
@@ -215,7 +217,6 @@ public:
 	/// construct a scene with a table
 	void build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW);
 
-	
 public:
 	vr_test();
 
@@ -226,9 +227,9 @@ public:
 	void on_set(void* member_ptr);
 
 	bool handle(cgv::gui::event& e);
-	
+
 	bool init(cgv::render::context& ctx);
-	
+
 	/// <summary>
 	/// Static method to calculate the positions of the orbits and satellites and fill the return vectors
 	/// </summary>
@@ -259,7 +260,6 @@ public:
 	void create_gui();
 
 };
-
 
 
 

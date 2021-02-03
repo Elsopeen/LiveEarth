@@ -26,6 +26,7 @@
 	return QUOTE_SYMBOL_VALUE(INPUT_DIR);
 }​/**/
 
+
 void vr_test::init_cameras(vr::vr_kit* kit_ptr)
 {
 	vr::vr_camera* camera_ptr = kit_ptr->get_camera();
@@ -936,6 +937,9 @@ void vr_test::init_frame(cgv::render::context& ctx)
 			}
 		}
 	}
+	
+	if(scene_ptr)
+
 }
 
 void vr_test::change_time(double, double dt) {
@@ -1106,19 +1110,8 @@ void vr_test::draw(cgv::render::context& ctx)
 	for (pair<string, bool> p : actives) {
 		if (p.second)
 			calc_actives++;
-	}/*
-	if (!pause) { //if animation played
-		if (std::abs(ticker - time(0)) > 10) { //tick for 10 secs
-			ticker = time(0);
-			if (backward)
-				visual_now -= 60; //advance animation by one minute
-			else
-				visual_now += 60; //backwards by one minute
-
-			calculate_positions_and_orbits();
-		}
-	}*/
-	if (/*old_time > visual_now + 5*3600*24 || old_time < visual_now - 5*3600*24 ||*/ calc_actives!=nb_active) {
+	}
+	if (calc_actives!=nb_active) {
 		calculate_positions_and_orbits();
 		nb_active = calc_actives;
 	}
@@ -1143,11 +1136,6 @@ void vr_test::draw(cgv::render::context& ctx)
 		ptx.disable(ctx);
 	}
 	
-
-	//old_time = visual_now;
-	
-
-
 	// draw label
 	if (vr_view_ptr && label_tex.is_created()) {
 		cgv::render::shader_program& prog = ctx.ref_default_shader_program(true);
