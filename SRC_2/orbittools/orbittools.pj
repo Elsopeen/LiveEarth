@@ -1,0 +1,5 @@
+@=
+projectType="plugin";
+projectName="orbittools";
+projectGUID="104dbefd-9670-4dd4-a595-46d48b5aabb7";
+addIncDirs=[INPUT_DIR];
