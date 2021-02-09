@@ -236,7 +236,7 @@ namespace vr {
 		* Reading all files from directory
 		*/
 		srand(time(0));
-		actives = std::vector<pair<string, bool>>();
+		actives = std::map<string, bool>();
 		satellites = std::map<string, std::vector<pair<cSatellite, bool>>>();
 		orbit_styles = std::map<string, cgv::render::rounded_cone_render_style>();
 		sat_styles = std::map<string, cgv::render::sphere_render_style>();
@@ -266,7 +266,7 @@ namespace vr {
 				file_reader.close();
 			}
 			cpt = 0;
-			actives.push_back(pair<string, bool>(entry, false));
+			actives.insert(pair<string, bool>(entry, false));
 			satellites.insert(pair<string, std::vector<pair<cSatellite, bool>>>(entry, satels));
 			cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
 			rend.surface_color = rgba(static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)),
@@ -302,6 +302,11 @@ namespace vr {
 			for (uint32_t li = 0; li < label_texture_ranges.size(); ++li)
 				label_texture_ranges[li] = lm.get_texcoord_range(li);
 		}
+		for (auto entry : li_sat) {
+			vec3 view_dir = -reinterpret_cast<const vec3&>(vr_view_ptr->get_current_vr_state()->hmd.pose[6]);
+			place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first), quat(0, view_dir[0], view_dir[1], view_dir[2]), CS_LAB, LA_LEFT);
+		}
+		
 	}
 
 	void vr_scene::clear(cgv::render::context& ctx)
@@ -538,6 +543,7 @@ namespace vr {
 									if (grabber_throttle_1 == 1 && !(j->second[i].second)) {
 										j->second[i].second = true;
 										calculate_positions_and_orbits();
+										show_label(li_sat.at(res[0] + "*&_" + res[1]));
 									}
 									else if (grabber_throttle_2 == 2 && (j->second[i].second)) {
 										j->second[i].second = false;
@@ -558,11 +564,12 @@ namespace vr {
 	}
 
 	void vr_scene::calculate_positions_and_orbits() {
-		all_pos_sat = std::vector<vec3>();
-		all_pos_orbit = std::vector<vec3>();
-		all_colors_sat = std::vector<vec3>();
-		all_colors_orbit = std::vector<vec3>();
-		names_plus_pos = std::vector<pair<string, vec3>>();
+		all_pos_sat.clear();
+		all_pos_orbit.clear();
+		all_colors_sat.clear();
+		all_colors_orbit.clear();
+		names_plus_pos.clear();
+		li_sat.clear();
 		//draw orbits and satellites
 		for (auto datasets_entry : actives) { //all datasets
 			if (datasets_entry.second) { //if dataset selected
@@ -626,7 +633,13 @@ namespace vr {
 						//sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), pos));
 						col_pos.push_back(vec3(sat_styles.at(datasets_entry.first).surface_color.R(), sat_styles.at(datasets_entry.first).surface_color.G(),
 							sat_styles.at(datasets_entry.first).surface_color.B()));
-						names_plus_pos.push_back(pair<string, vec3>(datasets_entry.first + "*&_" + sat_entry.first.Name(), vec));
+						string full_name = datasets_entry.first + "*&_" + sat_entry.first.Name();
+						names_plus_pos.insert(pair<string, vec3>(full_name, vec));
+						li_sat.insert(pair<string, uint32_t>(full_name, add_label("Dataset  : " + datasets_entry.first + "\nSat name : " + sat_entry.first.Name(), rgba(0.8F, 0.6F, 0.8F, 1.0F))));
+						fix_label_size(li_sat.at(full_name));
+						vec3 view_dir = -reinterpret_cast<const vec3&>(vr_view_ptr->get_current_vr_state()->hmd.pose[6]);
+						place_label(li_sat.at(full_name), names_plus_pos.at(full_name), quat(0, view_dir[0], view_dir[1], view_dir[2]), CS_LAB, LA_LEFT);
+						hide_label(li_sat.at(full_name));
 					}
 					catch (cDecayException e) {
 						std::vector<vec3> vec = std::vector<vec3>();
@@ -645,6 +658,7 @@ namespace vr {
 				}
 			}
 		}
+
 	}
 
 	string vr_scene::intersection(vec3 origin, vec3 direction) {
@@ -691,8 +705,8 @@ namespace vr {
 
 		if (begin_tree_node("Datasets", is_active)) {
 			align("\a");
-			for (int cpt = 0; cpt < actives.size(); cpt++) {
-				add_member_control(this, actives[cpt].first, actives[cpt].second);
+			for (auto cpt = actives.begin(); cpt != actives.end(); cpt++) {
+				add_member_control(this, cpt->first, cpt->second);
 			}
 			align("\b");
 			end_tree_node(is_active);

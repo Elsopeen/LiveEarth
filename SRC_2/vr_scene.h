@@ -57,31 +57,33 @@ namespace vr {
 
 		//@name Satellites
 		//@{
-		//Mesh renderer for earth
+		/// Mesh renderer for earth
 		cgv::render::mesh_render_info earth_info;
 		cgv::media::mesh::simple_mesh<> earth_sphere;
 
-		//Orbit rendering variables
+		/// Orbit rendering variables
 		cgv::render::rounded_cone_render_style orbit_style;
 		std::map<string, cgv::render::rounded_cone_render_style> orbit_styles;
 		std::vector<vec3> all_pos_orbit;
 		std::vector<vec3> all_colors_orbit;
 
-		//Satellites rendering variables
+		/// Satellites rendering variables
 		std::map<string, cgv::render::sphere_render_style> sat_styles;
 		cgv::render::sphere_render_style ptx_style;
 		std::vector<vec3> all_colors_sat;
 		std::vector<vec3> all_pos_sat;
 
-		//Satellites storing variables
+		/// Satellites storing variables
 		std::vector<cTle> tles;
-		std::vector<pair<cSatellite, bool>> sats;
-		std::vector<pair<string, bool>> actives;
+		//std::map<cSatellite, bool> sats;
+		std::map<string, bool> actives;
 		int nb_active;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
 
 		std::vector<std::vector<vec3>> pos;
-		std::vector<std::pair<string, vec3>> names_plus_pos;
+		std::map<string, vec3> names_plus_pos;
+		/// labels for the selected satellites
+		std::map<string, uint32_t> li_sat;
 
 		//Animation control variables
 		enum InteractionState {
