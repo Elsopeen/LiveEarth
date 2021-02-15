@@ -79,6 +79,7 @@ namespace vr {
 		std::map<string, bool> actives;
 		int nb_active;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
+		int nb_sat_active;
 
 		std::vector<std::vector<vec3>> pos;
 		std::map<string, vec3> names_plus_pos;
@@ -198,6 +199,12 @@ namespace vr {
 		string intersection(vec3 origin, vec3 direction);
 		/// Changes the time to allow the animation
 		void change_time(double, double dt);
+		/// starts the animation
+		void start_anim(cgv::gui::button&);
+		/// stops the animation
+		void stop_anim(cgv::gui::button&);
+		/// Changes the direction of the anim
+		void forback_anim(cgv::gui::button&);
 
 		//@}
 

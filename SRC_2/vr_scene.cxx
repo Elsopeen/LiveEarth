@@ -303,14 +303,14 @@ namespace vr {
 				label_texture_ranges[li] = lm.get_texcoord_range(li);
 		}
 		for (auto entry : li_sat) {
-			vec3 view_dir = -reinterpret_cast<const vec3&>(vr_view_ptr->get_current_vr_state()->hmd.pose[6]);
-			double angle_x = atan2(view_dir[1], view_dir[2]);
-			double angle_y = atan2(view_dir[0], view_dir[2]);
-			double angle_z = atan2(view_dir[0], view_dir[1]);
-			quat quat_total = quat(cos(angle_x/2)+ cos(angle_y / 2)+ cos(angle_z / 2), 1*sin(angle_x/2), 1 * sin(angle_y / 2), 1 * sin(angle_z / 2));
+			mat3 look_dir;
+			for (int i = 0; i < 9; i++) {
+				look_dir[i] = vr_view_ptr->get_current_vr_state()->hmd.pose[i];
+			}
+			quat quat_total = quat(look_dir);
 			place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first), quat_total, CS_LAB, LA_CENTER);
 		}
-		
+
 	}
 
 	void vr_scene::clear(cgv::render::context& ctx)
@@ -396,13 +396,24 @@ namespace vr {
 
 		//Draw of orbits and satellites
 		int calc_actives = 0;
+		int calc_sat_actives = 0;
 		for (pair<string, bool> p : actives) {
-			if (p.second)
+			if (p.second) {
 				calc_actives++;
+				for (auto entry : satellites.at(p.first)) {
+					if (entry.second) {
+						calc_sat_actives++;
+					}
+				}
+			}
 		}
 		if (calc_actives != nb_active) {
 			calculate_positions_and_orbits();
 			nb_active = calc_actives;
+		}
+		if (calc_sat_actives != nb_sat_active) {
+			calculate_positions_and_orbits();
+			nb_sat_active = calc_sat_actives;
 		}
 		if (all_pos_orbit.size() != 0) { //orbit for selected satellites
 			auto& orbit = cgv::render::ref_rounded_cone_renderer(ctx);
@@ -489,11 +500,11 @@ namespace vr {
 			switch (vrse.get_action()) {
 			case cgv::gui::SA_TOUCH:
 				if (state[vrse.get_controller_index()] == IS_OVER)
-				state[vrse.get_controller_index()] = IS_GRAB;
+					state[vrse.get_controller_index()] = IS_GRAB;
 				break;
 			case cgv::gui::SA_RELEASE:
 				if (state[vrse.get_controller_index()] == IS_GRAB)
-				state[vrse.get_controller_index()] = IS_OVER;
+					state[vrse.get_controller_index()] = IS_OVER;
 				break;
 			case cgv::gui::SA_PRESS:
 				pause = !pause;
@@ -636,13 +647,13 @@ namespace vr {
 
 								v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
 								if (t == 0 || t == (visual_now - min_one_rev - 1)) {
-									pos.push_back(vec3(v.m_x / (2.F*6378), 1.0F + v.m_z / (2.F*6378), v.m_y / (2.F*6378)));
+									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
 									col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
 										orbit_styles.at(datasets_entry.first).surface_color.B()));
 								}
 								else {
-									pos.push_back(vec3(v.m_x / (2.F*6378), 1.0F + v.m_z / (2.F*6378), v.m_y / (2.F*6378)));
-									pos.push_back(vec3(v.m_x / (2.F*6378), 1.0F + v.m_z / (2.F*6378), v.m_y / (2.F*6378)));
+									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
+									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
 									col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
 										orbit_styles.at(datasets_entry.first).surface_color.B()));
 									col_pos.push_back(vec3(orbit_styles.at(datasets_entry.first).surface_color.R(), orbit_styles.at(datasets_entry.first).surface_color.G(),
@@ -690,21 +701,20 @@ namespace vr {
 		calculate_positions_and_orbits();
 	}
 
+	void vr_scene::start_anim(cgv::gui::button&) {
+		trig.schedule_recuring(10);
+	}
+
+	void vr_scene::stop_anim(cgv::gui::button&) {
+		trig.stop();
+	}
+
+	void vr_scene::forback_anim(cgv::gui::button&) {
+		incr = -incr;
+	}
+
 	void vr_scene::create_gui()
 	{
-		add_decorator("vr_scene", "heading");
-		if (begin_tree_node("table", table_width)) {
-			align("\a");
-			add_member_control(this, "color", table_color);
-			add_member_control(this, "width", table_width, "value_slider", "min=0.1;max=3.0;ticks=true");
-			add_member_control(this, "depth", table_depth, "value_slider", "min=0.1;max=3.0;ticks=true");
-			add_member_control(this, "height", table_height, "value_slider", "min=0.1;max=3.0;ticks=true");
-			add_member_control(this, "leg color", leg_color);
-			add_member_control(this, "legs", leg_width, "value_slider", "min=0.0;max=0.3;ticks=true");
-			add_member_control(this, "offset", leg_offset, "value_slider", "min=0.0;max=0.5;ticks=true");
-			align("\b");
-			end_tree_node(table_width);
-		}
 
 		align("\a");
 		std::stringstream ss;
@@ -716,6 +726,18 @@ namespace vr {
 		add_member_control(this, "Time selection", visual_now, "value_slider", "min=" + ts + ";step=1;max=" + ts_plus + ";log=true;ticks=true");
 		align("\b");
 
+		align("\a");
+		add_member_control(this, "time animation jump", incr, "value_slider", "min=1;step=1;max=3600;log=false;ticks=true");
+		align("\b");
+		align("\a");
+		cgv::gui::button_ptr starter = add_button("Start animation");
+		cgv::signal::connect(starter->click, this, &vr_scene::start_anim);
+		cgv::gui::button_ptr stopper = add_button("Stop animation");
+		cgv::signal::connect(stopper->click, this, &vr_scene::stop_anim);
+		cgv::gui::button_ptr changer = add_button("Change time direction of animation");
+		cgv::signal::connect(changer->click, this, &vr_scene::forback_anim);
+		align("\b");
+
 		if (begin_tree_node("Datasets", is_active)) {
 			align("\a");
 			for (auto cpt = actives.begin(); cpt != actives.end(); cpt++) {
@@ -723,6 +745,19 @@ namespace vr {
 			}
 			align("\b");
 			end_tree_node(is_active);
+		}
+		bool sat_selector;
+		if (begin_tree_node("Satellites", sat_selector)) {
+			align("\a");
+			for (auto cpt = satellites.begin(); cpt != satellites.end(); cpt++) {
+				if (actives.at(cpt->first)) {
+					for (auto sat_entry = cpt->second.begin(); sat_entry != cpt->second.end(); sat_entry++) {
+						add_member_control(this, sat_entry->first.Name(), sat_entry->second);
+					}
+				}
+			}
+			align("\b");
+			end_tree_node(sat_selector);
 		}
 	}
 
