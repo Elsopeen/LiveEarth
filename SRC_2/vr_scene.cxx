@@ -7,53 +7,6 @@
 
 namespace vr {
 
-	void vr_scene::construct_table(float tw, float td, float th, float tW, float tO, rgb table_clr, rgb leg_clr)
-	{
-		float x0 = -0.5f * tw;
-		float x1 = -0.5f * tw + tO;
-		float x2 = -0.5f * tw + tO + tW;
-		float x3 = 0.5f * tw - tO - tW;
-		float x4 = 0.5f * tw - tO;
-		float x5 = 0.5f * tw;
-		float y0 = 0;
-		float y1 = th - tW;
-		float y2 = th;
-		float z0 = -0.5f * td;
-		float z1 = -0.5f * td + tO;
-		float z2 = -0.5f * td + tO + tW;
-		float z3 = 0.5f * td - tO - tW;
-		float z4 = 0.5f * td - tO;
-		float z5 = 0.5f * td;
-		boxes.push_back(box3(vec3(x0, y1, z0), vec3(x5, y2, z5))); box_colors.push_back(table_clr);
-
-		boxes.push_back(box3(vec3(x1, y0, z1), vec3(x2, y1, z2))); box_colors.push_back(leg_clr);
-		boxes.push_back(box3(vec3(x3, y0, z1), vec3(x4, y1, z2))); box_colors.push_back(leg_clr);
-		boxes.push_back(box3(vec3(x3, y0, z3), vec3(x4, y1, z4))); box_colors.push_back(leg_clr);
-		boxes.push_back(box3(vec3(x1, y0, z3), vec3(x2, y1, z4))); box_colors.push_back(leg_clr);
-	}
-
-	void vr_scene::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
-		// construct floor
-		boxes.push_back(box3(vec3(-0.5f * w, -W, -0.5f * d), vec3(0.5f * w, 0, 0.5f * d)));
-		box_colors.push_back(rgb(0.2f, 0.2f, 0.2f));
-
-		if (walls) {
-			// construct walls
-			boxes.push_back(box3(vec3(-0.5f * w, -W, -0.5f * d - W), vec3(0.5f * w, h, -0.5f * d)));
-			box_colors.push_back(rgb(0.8f, 0.5f, 0.5f));
-			boxes.push_back(box3(vec3(-0.5f * w, -W, 0.5f * d), vec3(0.5f * w, h, 0.5f * d + W)));
-			box_colors.push_back(rgb(0.8f, 0.5f, 0.5f));
-
-			boxes.push_back(box3(vec3(0.5f * w, -W, -0.5f * d - W), vec3(0.5f * w + W, h, 0.5f * d + W)));
-			box_colors.push_back(rgb(0.5f, 0.8f, 0.5f));
-		}
-		if (ceiling) {
-			// construct ceiling
-			boxes.push_back(box3(vec3(-0.5f * w - W, h, -0.5f * d - W), vec3(0.5f * w + W, h + W, 0.5f * d + W)));
-			box_colors.push_back(rgb(0.5f, 0.5f, 0.8f));
-		}
-	}
-
 	void vr_scene::construct_environment(float s, float ew, float ed, float w, float d, float h) {
 		std::default_random_engine generator;
 		std::uniform_real_distribution<float> distribution(0, 1);
@@ -77,9 +30,7 @@ namespace vr {
 
 	void vr_scene::build_scene(float w, float d, float h, float W)
 	{
-		//construct_room(w, d, h, W, false, false);
 		construct_environment(0.3f, 3 * w, 3 * d, w, d, h);
-		//construct_table(table_width, table_depth, table_height, leg_width, leg_offset, table_color, leg_color);
 	}
 
 	vr_scene::vr_scene()
@@ -103,9 +54,11 @@ namespace vr {
 
 		state[0] = state[1] = state[2] = state[3] = IS_NONE;
 
+		/// Creation of the trigger event and link to its signal
 		trig = cgv::gui::trigger();
 		incr = 60;
 		cgv::signal::connect(trig.shoot, this, &vr_scene::change_time);
+
 	}
 
 	bool vr_scene::self_reflect(cgv::reflect::reflection_handler& rh)
@@ -126,7 +79,6 @@ namespace vr {
 		if (member_ptr >= &table_width && member_ptr < &leg_color + 1) {
 			boxes.resize(boxes.size() - 5);
 			box_colors.resize(box_colors.size() - 5);
-			//construct_table(table_width, table_depth, table_height, leg_width, leg_offset, table_color, leg_color);
 		}
 		update_member(member_ptr);
 		post_redraw();
@@ -196,8 +148,6 @@ namespace vr {
 		grabber_throttle_1 = 0;
 		grabber_throttle_2 = 0;
 		pause = true;
-		back = false;
-		ticker = time(0);
 
 		/**
 		* Time interval
@@ -209,8 +159,6 @@ namespace vr {
 		tm v_plus_2_tm = *gmtime(&visual_now);
 		v_plus_2_tm.tm_year += 2;
 		v_plus_2 = mktime(&v_plus_2_tm);
-
-		old_time = visual_now - 1000000;
 
 
 
@@ -232,58 +180,74 @@ namespace vr {
 				mats[0]->set_diffuse_index(di);
 			}
 		}
+
 		/**
 		* Reading all files from directory
+		* and creating corresponding satellite object
 		*/
-		srand(time(0));
-		actives = std::map<string, bool>();
-		satellites = std::map<string, std::vector<pair<cSatellite, bool>>>();
-		orbit_styles = std::map<string, cgv::render::rounded_cone_render_style>();
-		sat_styles = std::map<string, cgv::render::sphere_render_style>();
-		string path = get_input_directory() + "/../sat_data";
-		auto result = get_all_files_names_within_folder(path);
-		for (const auto& entry : result) {
-			std::string line, line1, line2, line3;
-			std::ifstream file_reader(path + "/" + entry);
-			int cpt = 0;
-			std::vector<pair<cSatellite, bool>> satels = std::vector<pair<cSatellite, bool>>();
-			if (file_reader.is_open())
-			{
-				while (std::getline(file_reader, line))
+		{
+			srand(time(0));
+			actives = std::map<string, bool>();
+			satellites = std::map<string, std::vector<pair<cSatellite, bool>>>();
+			orbit_styles = std::map<string, cgv::render::rounded_cone_render_style>();
+			sat_styles = std::map<string, cgv::render::sphere_render_style>();
+			string path = get_input_directory() + "/../sat_data";
+			auto result = get_all_files_names_within_folder(path);
+			for (const auto& entry : result) {
+				std::string line, line1, line2, line3;
+				std::ifstream file_reader(path + "/" + entry);
+				int cpt = 0;
+				std::vector<pair<cSatellite, bool>> satels = std::vector<pair<cSatellite, bool>>();
+				if (file_reader.is_open())
 				{
-					if (cpt % 3 == 0) {
-						line1 = line;
+					while (std::getline(file_reader, line))
+					{
+						if (cpt % 3 == 0) {
+							line1 = line;
+						}
+						else if (cpt % 3 == 1) {
+							line2 = line;
+						}
+						else if (cpt % 3 == 2) {
+							line3 = line;
+							satels.push_back(pair<cSatellite, bool>(cSatellite(cTle(line1, line2, line3)), false));
+						}
+						cpt++;
 					}
-					else if (cpt % 3 == 1) {
-						line2 = line;
-					}
-					else if (cpt % 3 == 2) {
-						line3 = line;
-						satels.push_back(pair<cSatellite, bool>(cSatellite(cTle(line1, line2, line3)), false));
-					}
-					cpt++;
+					file_reader.close();
 				}
-				file_reader.close();
+				cpt = 0;
+				actives.insert(pair<string, bool>(entry, false));
+				satellites.insert(pair<string, std::vector<pair<cSatellite, bool>>>(entry, satels));
+				cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
+				rend.surface_color = rgba(static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)),
+					static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)), static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)), 1);
+				rend.radius = 0.01f;
+				orbit_styles.insert(pair<string, cgv::render::rounded_cone_render_style>(entry, rend));
+				cgv::render::sphere_render_style rend_ptx = cgv::render::sphere_render_style();
+				rend_ptx.surface_color = rend.surface_color;
+				rend_ptx.radius = 0.0125F;
+				sat_styles.insert(pair<string, cgv::render::sphere_render_style>(entry, rend_ptx));
 			}
-			cpt = 0;
-			actives.insert(pair<string, bool>(entry, false));
-			satellites.insert(pair<string, std::vector<pair<cSatellite, bool>>>(entry, satels));
-			cgv::render::rounded_cone_render_style rend = cgv::render::rounded_cone_render_style();
-			rend.surface_color = rgba(static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)),
-				static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)), static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 1)), 1);
-			rend.radius = 0.01f;
-			orbit_styles.insert(pair<string, cgv::render::rounded_cone_render_style>(entry, rend));
-			cgv::render::sphere_render_style rend_ptx = cgv::render::sphere_render_style();
-			rend_ptx.surface_color = rend.surface_color;
-			rend_ptx.radius = 0.0125F;
-			sat_styles.insert(pair<string, cgv::render::sphere_render_style>(entry, rend_ptx));
+			ptx_style = cgv::render::sphere_render_style();
+			ptx_style.radius = 0.00625F;
+			orbit_style = cgv::render::rounded_cone_render_style();
+			orbit_style.radius = ptx_style.radius / 2;
+			//sat_pos = std::map<cSatellite, std::vector<vec3>>();
+			//sat_orbit_pos = std::map<cSatellite, std::vector<vec3>>();
 		}
-		ptx_style = cgv::render::sphere_render_style();
-		ptx_style.radius = 0.00625F;
-		orbit_style = cgv::render::rounded_cone_render_style();
-		orbit_style.radius = ptx_style.radius / 2;
-		//sat_pos = std::map<cSatellite, std::vector<vec3>>();
-		//sat_orbit_pos = std::map<cSatellite, std::vector<vec3>>();
+
+		/**
+		* Labels for listing selected datasets and orbits
+		*/
+		{
+			listing_datasets_label = add_label("Datasets: ", rgba(252.F / 256, 186.F / 256, 3.F / 256, 1), 10, 10);
+			fix_label_size(listing_datasets_label);
+			place_label(listing_datasets_label, vec3(0, 2, 0), quat(), CS_LAB, LA_CENTER);
+			listing_orbits_label = add_label("Orbits: ", rgba(252.F / 256, 186.F / 256, 3.F / 256, 1));
+			fix_label_size(listing_orbits_label);
+			place_label(listing_orbits_label, vec3(0, 1.75, 0), quat(), CS_LAB, LA_CENTER);
+		}
 
 
 		cgv::render::ref_box_renderer(ctx, 1);
@@ -302,14 +266,18 @@ namespace vr {
 			for (uint32_t li = 0; li < label_texture_ranges.size(); ++li)
 				label_texture_ranges[li] = lm.get_texcoord_range(li);
 		}
-		for (auto entry : li_sat) {
+		/// calculate the direction matrix of the headset
+		mat3 look_dir;
+		for (int i = 0; i < 9; i++) {
+			look_dir[i] = vr_view_ptr->get_current_vr_state()->hmd.pose[i];
+		}
+		quat quat_total = quat(look_dir);
+		//update directions of labels
+		place_label(listing_datasets_label, vec3(0, 2, 0), quat_total, CS_LAB, LA_CENTER);
+		place_label(listing_orbits_label, vec3(0, 1.75, 0), quat_total, CS_LAB, LA_CENTER);
+		for (auto entry : li_sat) { //update for sat labels only if shown
 			if (label_visibilities[entry.second]) {
-				mat3 look_dir;
-				for (int i = 0; i < 9; i++) {
-					look_dir[i] = vr_view_ptr->get_current_vr_state()->hmd.pose[i];
-				}
-				quat quat_total = quat(look_dir);
-				place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first), quat_total, CS_LAB, LA_CENTER);
+				place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first) + vec3(0, 0.0125, 0), quat_total, CS_LAB, LA_CENTER);
 			}
 		}
 
@@ -397,26 +365,6 @@ namespace vr {
 
 
 		//Draw of orbits and satellites
-		/*int calc_actives = 0;
-		int calc_sat_actives = 0;
-		for (pair<string, bool> p : actives) {
-			if (p.second) {
-				calc_actives++;
-				for (auto entry : satellites.at(p.first)) {
-					if (entry.second) {
-						calc_sat_actives++;
-					}
-				}
-			}
-		}
-		/*if (calc_actives != nb_active) {
-			calculate_positions_and_orbits();
-			nb_active = calc_actives;
-		}
-		if (calc_sat_actives != nb_sat_active) {
-			calculate_positions_and_orbits();
-			nb_sat_active = calc_sat_actives;
-		}*/
 		if (all_pos_orbit.size() != 0) { //orbit for selected satellites
 			auto& orbit = cgv::render::ref_rounded_cone_renderer(ctx);
 			orbit.set_render_style(orbit_style);
@@ -464,13 +412,7 @@ namespace vr {
 					std::cout << "touch pad of " << (vrke.get_controller_index() == 0 ? "left" : "right") << " controller pressed at right direction" << std::endl;
 					return true;
 				case vr::VR_A:
-					back = !back;
-					if (back) {
-						incr = -60;
-					}
-					else {
-						incr = 60;
-					}
+					incr = -incr;
 					return true;
 				}
 			}
@@ -509,13 +451,13 @@ namespace vr {
 					state[vrse.get_controller_index()] = IS_OVER;
 				break;
 			case cgv::gui::SA_PRESS:
+				/// Pauses and resumes the animation
 				pause = !pause;
 				if (pause) {
 					trig.stop();
 				}
 				else {
-					if (trig.schedule_recuring(10))
-						cout << "Play" << endl;
+					trig.schedule_recuring(10);
 				}
 			case cgv::gui::SA_UNPRESS:
 				std::cout << "stick " << vrse.get_stick_index()
@@ -541,28 +483,28 @@ namespace vr {
 			int ci = vrpe.get_trackable_index();
 			if (ci != -1) {
 				vec3 origin, direction;
-				vrpe.get_state().controller[ci].put_ray(&origin(0), &direction(0));
-				string result = intersection(origin, direction);
+				vrpe.get_state().controller[ci].put_ray(&origin(0), &direction(0));//get direction and origin of controller
+				string result = intersection(origin, direction);//find closest satellite along the axis of the controller
 				vector<string> res = vector<string>();
 				std::string delimiter = "*&_";
 
 				size_t pos = 0;
-				while ((pos = result.find(delimiter)) != std::string::npos) {
+				while ((pos = result.find(delimiter)) != std::string::npos) { //split the result
 					res.push_back(result.substr(0, pos));
 					result.erase(0, pos + delimiter.length());
 				}
 				res.push_back(result);
 				if (res.size() == 2) {
 					for (auto j = satellites.begin(); j != satellites.end(); j++) {
-						if (j->first == res[0]) {
+						if (j->first == res[0]) { //if dataset's name equals intersection's result's dataset's name
 							for (int i = 0; i < j->second.size(); i++) {
-								if (j->second[i].first.Name() == res[1]) {
-									if (grabber_throttle_1 == 1 && !(j->second[i].second)) {
+								if (j->second[i].first.Orbit().SatId() == res[1]) { //if satellite's ID == intersection's result's satID
+									if (grabber_throttle_1 == 1 && !(j->second[i].second)) { //trigger pressed and not already selected
 										j->second[i].second = true;
 										calculate_positions_and_orbits();
 										show_label(li_sat.at(res[0] + "*&_" + res[1]));
 									}
-									else if (grabber_throttle_2 == 2 && (j->second[i].second)) {
+									else if (grabber_throttle_2 == 2 && (j->second[i].second)) { //grip pressed and already selected
 										j->second[i].second = false;
 										hide_label(li_sat.at(res[0] + "*&_" + res[1]));
 										calculate_positions_and_orbits();
@@ -591,47 +533,64 @@ namespace vr {
 			label_visibilities[entry.second] = false;
 		}
 		li_sat.clear();
+		string datasets_label = "";
+		string orbits_label = "";
+		int cptdat = 0;
+		int cptor = 0;
 		//draw orbits and satellites
 		for (auto datasets_entry : actives) { //all datasets
 			if (datasets_entry.second) { //if dataset selected
+				if (cptdat % 3 == 0) {
+					datasets_label += datasets_entry.first + ", \n";
+					cptdat++;
+				}
+				else {
+					datasets_label += datasets_entry.first + ", ";
+					cptdat++;
+				}
 				auto sats = satellites.at(datasets_entry.first); //find satellites list
 				for (auto sat_entry : sats) { //for all satellites in the list
 					std::vector<vec3> pos = std::vector<vec3>();
 					double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
 					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Orbit().SatId();
-					//if satellite not selected for orbit
+					// all satellites
 					cVector v;
 					pos = std::vector<vec3>();
 					std::vector<vec3> col_pos = std::vector<vec3>();
 					try {
-						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position();
-						vec3 vec = vec3(v.m_x / (2.0F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378));
+						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position(); //find its position
+						vec3 vec = vec3(v.m_x / (2.0F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)); //scale it to the VR world
 						pos.push_back(vec);
-						//sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), pos));
 						col_pos.push_back(vec3(sat_styles.at(datasets_entry.first).surface_color.R(), sat_styles.at(datasets_entry.first).surface_color.G(),
 							sat_styles.at(datasets_entry.first).surface_color.B()));
 						names_plus_pos.insert(pair<string, vec3>(full_name, vec));
-						li_sat.insert(pair<string, uint32_t>(full_name, add_label("Dataset  : " + datasets_entry.first + "\nSat name : " + sat_entry.first.Name(), rgba(0.8F, 0.6F, 0.8F, 1.0F))));
+						li_sat.insert(pair<string, uint32_t>(full_name, add_label("Dataset  : " + datasets_entry.first + "\nSat name : " + sat_entry.first.Name(),
+							rgba(0.8F, 0.6F, 0.8F, 1.0F)))); //create label corresponding to said satellite
 						fix_label_size(li_sat.at(full_name));
 						vec3 view_dir = -reinterpret_cast<const vec3&>(vr_view_ptr->get_current_vr_state()->hmd.pose[6]);
 						place_label(li_sat.at(full_name), names_plus_pos.at(full_name), quat(0, view_dir[0], view_dir[1], view_dir[2]), CS_LAB, LA_LEFT);
-						hide_label(li_sat.at(full_name));
+						hide_label(li_sat.at(full_name));//hide it
 					}
 					catch (cDecayException e) {
 						std::vector<vec3> vec = std::vector<vec3>();
 						vec.push_back(vec3());
-						//sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
 						std::cerr << e.GetSatelliteName() + " is in the ground right now..." << std::endl;
 					}
 					catch (cPropagationException e) {
 						std::vector<vec3> vec = std::vector<vec3>();
 						vec.push_back(vec3());
-						//sat_pos.insert(pair<string, std::vector<vec3>>(sat_entry.first.Name(), vec)); //Insert empty value for invalid satellites
-						//std::cerr << e.Message() << std::endl;
 					}
 					all_pos_sat.insert(all_pos_sat.end(), pos.begin(), pos.end());
 					all_colors_sat.insert(all_colors_sat.end(), col_pos.begin(), col_pos.end());
 					if (sat_entry.second) { //if satellite selected for orbit drawn
+						if (cptor % 3 == 0) {
+							orbits_label += sat_entry.first.Name() + ", \n";
+							cptor++;
+						}
+						else {
+							orbits_label += sat_entry.first.Name() + ", ";
+							cptor++;
+						}
 						/**
 						* Calculation of one revolution orbit
 						*/
@@ -684,6 +643,10 @@ namespace vr {
 				}
 			}
 		}
+		lm.update_label_text(listing_datasets_label, "Datasets: " + datasets_label);
+		lm.update_label_size(listing_datasets_label, -1, -1); //update size as list grows
+		lm.update_label_text(listing_orbits_label, "Orbits: " + orbits_label);
+		lm.update_label_size(listing_orbits_label, -1, -1); //update size as list grows
 
 	}
 
@@ -734,7 +697,7 @@ namespace vr {
 		align("\b");
 
 		align("\a");
-		add_member_control(this, "time animation jump", incr, "value_slider", "min=1;step=1;max=3600;log=false;ticks=true");
+		add_member_control(this, "time animation jump", incr, "value_slider", "min=-3600;step=1;max=3600;log=false;ticks=true");
 		align("\b");
 		align("\a");
 		cgv::gui::button_ptr starter = add_button("Start animation");

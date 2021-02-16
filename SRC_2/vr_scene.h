@@ -41,16 +41,13 @@ namespace vr {
 		// rendering style for rendering of boxes
 		cgv::render::box_render_style style;
 
-		/// construct boxes that represent a table of dimensions tw,td,th and leg width tW
-		void construct_table(float tw, float td, float th, float tW, float tO, rgb table_clr, rgb leg_clr);
-		/// construct boxes that represent a room of dimensions w,d,h and wall width W
-		void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
 		/// construct boxes for environment
 		void construct_environment(float s, float ew, float ed, float w, float d, float h);
 		/// construct a scene with a table
 		void build_scene(float w, float d, float h, float W);
 		//@}
 
+		/// Return the directory INPUT_DIR
 		static std::string get_input_directory() {
 			return QUOTE_SYMBOL_VALUE(INPUT_DIR);
 		};
@@ -74,17 +71,14 @@ namespace vr {
 		std::vector<vec3> all_pos_sat;
 
 		/// Satellites storing variables
-		std::vector<cTle> tles;
-		//std::map<cSatellite, bool> sats;
 		std::map<string, bool> actives;
-		int nb_active;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
-		int nb_sat_active;
-
-		std::vector<std::vector<vec3>> pos;
 		std::map<string, vec3> names_plus_pos;
+
 		/// labels for the selected satellites
 		std::map<string, uint32_t> li_sat;
+		uint32_t listing_datasets_label;
+		uint32_t listing_orbits_label;
 
 		//Animation control variables
 		enum InteractionState {
@@ -98,13 +92,10 @@ namespace vr {
 		int grabber_throttle_2;
 
 		bool pause; //false play true pause
-		bool back; //false forward true backward
 		cgv::gui::trigger trig;
-		time_t ticker;
 		int incr;
 		bool is_active;
 		time_t visual_now;
-		time_t old_time;
 		time_t v_min_2, v_plus_2;
 
 		//@}
@@ -220,6 +211,7 @@ namespace vr {
 		void draw(cgv::render::context& ctx);
 		//@}
 
+		// invert boolean value of the toggle button control
 		void activate_dataset_or_orbit(cgv::gui::control<bool>& in);
 
 		/// cgv::gui::provider function to create classic UI
