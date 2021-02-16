@@ -303,12 +303,14 @@ namespace vr {
 				label_texture_ranges[li] = lm.get_texcoord_range(li);
 		}
 		for (auto entry : li_sat) {
-			mat3 look_dir;
-			for (int i = 0; i < 9; i++) {
-				look_dir[i] = vr_view_ptr->get_current_vr_state()->hmd.pose[i];
+			if (label_visibilities[entry.second]) {
+				mat3 look_dir;
+				for (int i = 0; i < 9; i++) {
+					look_dir[i] = vr_view_ptr->get_current_vr_state()->hmd.pose[i];
+				}
+				quat quat_total = quat(look_dir);
+				place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first), quat_total, CS_LAB, LA_CENTER);
 			}
-			quat quat_total = quat(look_dir);
-			place_label(li_sat.at(entry.first), names_plus_pos.at(entry.first), quat_total, CS_LAB, LA_CENTER);
 		}
 
 	}
@@ -395,7 +397,7 @@ namespace vr {
 
 
 		//Draw of orbits and satellites
-		int calc_actives = 0;
+		/*int calc_actives = 0;
 		int calc_sat_actives = 0;
 		for (pair<string, bool> p : actives) {
 			if (p.second) {
@@ -407,14 +409,14 @@ namespace vr {
 				}
 			}
 		}
-		if (calc_actives != nb_active) {
+		/*if (calc_actives != nb_active) {
 			calculate_positions_and_orbits();
 			nb_active = calc_actives;
 		}
 		if (calc_sat_actives != nb_sat_active) {
 			calculate_positions_and_orbits();
 			nb_sat_active = calc_sat_actives;
-		}
+		}*/
 		if (all_pos_orbit.size() != 0) { //orbit for selected satellites
 			auto& orbit = cgv::render::ref_rounded_cone_renderer(ctx);
 			orbit.set_render_style(orbit_style);
@@ -596,7 +598,7 @@ namespace vr {
 				for (auto sat_entry : sats) { //for all satellites in the list
 					std::vector<vec3> pos = std::vector<vec3>();
 					double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
-					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Name();
+					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Orbit().SatId();
 					//if satellite not selected for orbit
 					cVector v;
 					pos = std::vector<vec3>();
@@ -713,6 +715,11 @@ namespace vr {
 		incr = -incr;
 	}
 
+	void vr_scene::activate_dataset_or_orbit(cgv::gui::control<bool>& in) {
+		in.set_new_value(!in.get_value());
+		calculate_positions_and_orbits();
+	}
+
 	void vr_scene::create_gui()
 	{
 
@@ -741,7 +748,9 @@ namespace vr {
 		if (begin_tree_node("Datasets", is_active)) {
 			align("\a");
 			for (auto cpt = actives.begin(); cpt != actives.end(); cpt++) {
-				add_member_control(this, cpt->first, cpt->second);
+				//add_member_control(this, cpt->first, cpt->second);
+				auto ctrl_ptr = this->add_control(cpt->first, cpt->second, "toggle");
+				cgv::signal::connect(ctrl_ptr->value_change, this, &vr_scene::activate_dataset_or_orbit);
 			}
 			align("\b");
 			end_tree_node(is_active);
@@ -752,7 +761,8 @@ namespace vr {
 			for (auto cpt = satellites.begin(); cpt != satellites.end(); cpt++) {
 				if (actives.at(cpt->first)) {
 					for (auto sat_entry = cpt->second.begin(); sat_entry != cpt->second.end(); sat_entry++) {
-						add_member_control(this, sat_entry->first.Name(), sat_entry->second);
+						auto ctrl_ptr = this->add_control(sat_entry->first.Name(), sat_entry->second, "toggle");
+						cgv::signal::connect(ctrl_ptr->value_change, this, &vr_scene::activate_dataset_or_orbit);
 					}
 				}
 			}

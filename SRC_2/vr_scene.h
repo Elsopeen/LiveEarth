@@ -220,6 +220,8 @@ namespace vr {
 		void draw(cgv::render::context& ctx);
 		//@}
 
+		void activate_dataset_or_orbit(cgv::gui::control<bool>& in);
+
 		/// cgv::gui::provider function to create classic UI
 		void create_gui();
 	};
