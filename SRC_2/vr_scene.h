@@ -69,8 +69,9 @@ namespace vr {
 		cgv::render::sphere_render_style ptx_style;
 		std::vector<vec3> all_colors_sat;
 		std::map<string,vec3> all_pos_sat_start;
-		std::map<string,vec3> all_pos_sat_interp;
+		std::map<string, vec3> all_pos_sat_mid;
 		std::map<string,vec3> all_pos_sat_end;
+		std::map<string, vec3> all_pos_sat_interp;
 
 		/// Satellites storing variables
 		std::map<string, bool> actives;
@@ -100,6 +101,7 @@ namespace vr {
 		bool is_active;
 		time_t visual_now;
 		time_t start_time;
+		time_t mid_time;
 		time_t end_time;
 		time_t v_min_2, v_plus_2;
 

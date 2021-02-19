@@ -531,6 +531,7 @@ namespace vr {
 	void vr_scene::calculate_positions_and_orbits() {
 		all_pos_sat_start.clear();
 		all_pos_sat_interp.clear();
+		all_pos_sat_mid.clear();
 		all_pos_sat_end.clear();
 		all_pos_orbit.clear();
 		all_colors_sat.clear();
@@ -546,11 +547,13 @@ namespace vr {
 		int cptor = 0;
 		if (forback) {
 			start_time = visual_now;
-			end_time = visual_now - 300;
+			mid_time = visual_now - 450;
+			end_time = visual_now - 900;
 		}
 		else {
 			start_time = visual_now;
-			end_time = visual_now + 300;
+			mid_time = visual_now + 450;
+			end_time = visual_now + 900;
 		}
 		//draw orbits and satellites
 		for (auto datasets_entry : actives) { //all datasets
@@ -569,22 +572,23 @@ namespace vr {
 					double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
 					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Orbit().SatId();
 					// all satellites
-					cVector v_s, v_e;
-					vector<vec3> pos_end = vector<vec3>();
+					cVector v_s, v_m, v_e;
 					std::vector<vec3> col_pos = std::vector<vec3>();
 					try {
 						v_s = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(start_time))).Position(); //find its position
+						v_m = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(mid_time))).Position(); //find its position
 						v_e = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(end_time))).Position(); //find its position one hour later
 						vec3 vec = vec3(v_s.m_x / (2.0F * 6378), 1.0F + v_s.m_z / (2.F * 6378), v_s.m_y / (2.F * 6378)); //scale it to the VR world
-						pos.push_back(vec);
+						vec3 vec_m = vec3(v_m.m_x / (2.0F * 6378), 1.0F + v_m.m_z / (2.F * 6378), v_m.m_y / (2.F * 6378)); //scale it to the VR world
 						vec3 vec_e = vec3(v_e.m_x / (2.0F * 6378), 1.0F + v_e.m_z / (2.F * 6378), v_e.m_y / (2.F * 6378)); //scale it to the VR world
-						pos_end.push_back(vec_e);
+
 						col_pos.push_back(vec3(sat_styles.at(datasets_entry.first).surface_color.R(), sat_styles.at(datasets_entry.first).surface_color.G(),
 							sat_styles.at(datasets_entry.first).surface_color.B()));
 						names_plus_pos.insert(pair<string, vec3>(full_name, vec));
 						all_pos_sat_start.insert(pair<string,vec3>(full_name, vec));
-						all_pos_sat_interp.insert(pair<string, vec3>(full_name, vec));
+						all_pos_sat_mid.insert(pair<string, vec3>(full_name, vec_m));
 						all_pos_sat_end.insert(pair<string, vec3>(full_name, vec_e));
+						all_pos_sat_interp.insert(pair<string, vec3>(full_name, vec));
 						li_sat.insert(pair<string, uint32_t>(full_name, add_label("Dataset  : " + datasets_entry.first + "\nSat name : " + sat_entry.first.Name(),
 							rgba(0.8F, 0.6F, 0.8F, 1.0F)))); //create label corresponding to said satellite
 						fix_label_size(li_sat.at(full_name));
@@ -693,9 +697,11 @@ namespace vr {
 		}
 		all_pos_sat_interp.clear();
 		for (auto i = all_pos_sat_start.begin(); i != all_pos_sat_start.end(); i++) {
-			auto time_factor = ((double)(visual_now - start_time) / (end_time - start_time));
-			auto vector_distance = all_pos_sat_end.at(i->first) - all_pos_sat_start.at(i->first);
-			all_pos_sat_interp.insert(pair<string,vec3>(i->first,all_pos_sat_start.at(i->first) + vector_distance * time_factor));
+			auto lagrange_start = ((double)(visual_now - mid_time) / (start_time - mid_time)) * ((double)(visual_now - end_time)/(start_time - end_time));
+			auto lagrange_mid = ((double)(visual_now - start_time) / (mid_time - start_time)) * ((double)(visual_now - end_time) / (mid_time - end_time));
+			auto lagrange_end = ((double)(visual_now - start_time) / (end_time - start_time)) * ((double)(visual_now - mid_time) / (end_time - mid_time));
+			all_pos_sat_interp.insert(pair<string, vec3>(i->first, all_pos_sat_start.at(i->first) * lagrange_start + all_pos_sat_mid.at(i->first) * lagrange_mid
+				+ all_pos_sat_end.at(i->first) * lagrange_end));
 			names_plus_pos.at(i->first) = all_pos_sat_interp.at(i->first);
 		}
 	}
