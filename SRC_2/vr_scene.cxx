@@ -58,6 +58,7 @@ namespace vr {
 		trig = cgv::gui::trigger();
 		incr = 60;
 		cgv::signal::connect(trig.shoot, this, &vr_scene::change_time);
+		forback = false;
 
 	}
 
@@ -375,14 +376,18 @@ namespace vr {
 			orbit.draw(ctx, 0, all_pos_orbit.size());
 			orbit.disable(ctx);
 		}
-		if (all_pos_sat.size() != 0) { //position only
+		if (all_pos_sat_interp.size() != 0) { //position only
 			auto& ptx = cgv::render::ref_sphere_renderer(ctx);
 			ptx.set_render_style(ptx_style);
-			ptx.set_position_array(ctx, all_pos_sat);
+			vector<vec3> pos_sat_inter = vector<vec3>();
+			for (auto entry : all_pos_sat_interp) {
+				pos_sat_inter.push_back(entry.second);
+			}
+			ptx.set_position_array(ctx, pos_sat_inter);
 			ptx.set_color_array(ctx, all_colors_sat);
 
 			ptx.validate_and_enable(ctx);
-			ptx.draw(ctx, 0, all_pos_sat.size());
+			ptx.draw(ctx, 0, all_pos_sat_interp.size());
 			ptx.disable(ctx);
 		}
 
@@ -412,7 +417,7 @@ namespace vr {
 					std::cout << "touch pad of " << (vrke.get_controller_index() == 0 ? "left" : "right") << " controller pressed at right direction" << std::endl;
 					return true;
 				case vr::VR_A:
-					incr = -incr;
+					forback = !forback;
 					return true;
 				}
 			}
@@ -457,7 +462,7 @@ namespace vr {
 					trig.stop();
 				}
 				else {
-					trig.schedule_recuring(10);
+					trig.schedule_recuring(1.0F/60.F);
 				}
 			case cgv::gui::SA_UNPRESS:
 				std::cout << "stick " << vrse.get_stick_index()
@@ -524,7 +529,9 @@ namespace vr {
 	}
 
 	void vr_scene::calculate_positions_and_orbits() {
-		all_pos_sat.clear();
+		all_pos_sat_start.clear();
+		all_pos_sat_interp.clear();
+		all_pos_sat_end.clear();
 		all_pos_orbit.clear();
 		all_colors_sat.clear();
 		all_colors_orbit.clear();
@@ -537,6 +544,14 @@ namespace vr {
 		string orbits_label = "";
 		int cptdat = 0;
 		int cptor = 0;
+		if (forback) {
+			start_time = visual_now;
+			end_time = visual_now - 300;
+		}
+		else {
+			start_time = visual_now;
+			end_time = visual_now + 300;
+		}
 		//draw orbits and satellites
 		for (auto datasets_entry : actives) { //all datasets
 			if (datasets_entry.second) { //if dataset selected
@@ -554,16 +569,22 @@ namespace vr {
 					double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
 					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Orbit().SatId();
 					// all satellites
-					cVector v;
-					pos = std::vector<vec3>();
+					cVector v_s, v_e;
+					vector<vec3> pos_end = vector<vec3>();
 					std::vector<vec3> col_pos = std::vector<vec3>();
 					try {
-						v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(visual_now))).Position(); //find its position
-						vec3 vec = vec3(v.m_x / (2.0F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)); //scale it to the VR world
+						v_s = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(start_time))).Position(); //find its position
+						v_e = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(end_time))).Position(); //find its position one hour later
+						vec3 vec = vec3(v_s.m_x / (2.0F * 6378), 1.0F + v_s.m_z / (2.F * 6378), v_s.m_y / (2.F * 6378)); //scale it to the VR world
 						pos.push_back(vec);
+						vec3 vec_e = vec3(v_e.m_x / (2.0F * 6378), 1.0F + v_e.m_z / (2.F * 6378), v_e.m_y / (2.F * 6378)); //scale it to the VR world
+						pos_end.push_back(vec_e);
 						col_pos.push_back(vec3(sat_styles.at(datasets_entry.first).surface_color.R(), sat_styles.at(datasets_entry.first).surface_color.G(),
 							sat_styles.at(datasets_entry.first).surface_color.B()));
 						names_plus_pos.insert(pair<string, vec3>(full_name, vec));
+						all_pos_sat_start.insert(pair<string,vec3>(full_name, vec));
+						all_pos_sat_interp.insert(pair<string, vec3>(full_name, vec));
+						all_pos_sat_end.insert(pair<string, vec3>(full_name, vec_e));
 						li_sat.insert(pair<string, uint32_t>(full_name, add_label("Dataset  : " + datasets_entry.first + "\nSat name : " + sat_entry.first.Name(),
 							rgba(0.8F, 0.6F, 0.8F, 1.0F)))); //create label corresponding to said satellite
 						fix_label_size(li_sat.at(full_name));
@@ -580,7 +601,6 @@ namespace vr {
 						std::vector<vec3> vec = std::vector<vec3>();
 						vec.push_back(vec3());
 					}
-					all_pos_sat.insert(all_pos_sat.end(), pos.begin(), pos.end());
 					all_colors_sat.insert(all_colors_sat.end(), col_pos.begin(), col_pos.end());
 					if (sat_entry.second) { //if satellite selected for orbit drawn
 						if (cptor % 3 == 0) {
@@ -662,12 +682,26 @@ namespace vr {
 	}
 
 	void vr_scene::change_time(double, double dt) {
-		visual_now += incr;
-		calculate_positions_and_orbits();
+		if (all_pos_sat_start.size() != all_pos_sat_end.size() || visual_now == end_time) {
+			calculate_positions_and_orbits();
+		}
+		if (!forback) {
+			visual_now+=10;
+		}
+		else {
+			visual_now-=10;
+		}
+		all_pos_sat_interp.clear();
+		for (auto i = all_pos_sat_start.begin(); i != all_pos_sat_start.end(); i++) {
+			auto time_factor = ((double)(visual_now - start_time) / (end_time - start_time));
+			auto vector_distance = all_pos_sat_end.at(i->first) - all_pos_sat_start.at(i->first);
+			all_pos_sat_interp.insert(pair<string,vec3>(i->first,all_pos_sat_start.at(i->first) + vector_distance * time_factor));
+			names_plus_pos.at(i->first) = all_pos_sat_interp.at(i->first);
+		}
 	}
 
 	void vr_scene::start_anim(cgv::gui::button&) {
-		trig.schedule_recuring(10);
+		trig.schedule_recuring(1.0F/60.F);
 	}
 
 	void vr_scene::stop_anim(cgv::gui::button&) {
@@ -675,7 +709,8 @@ namespace vr {
 	}
 
 	void vr_scene::forback_anim(cgv::gui::button&) {
-		incr = -incr;
+		forback = !forback;
+		calculate_positions_and_orbits();
 	}
 
 	void vr_scene::activate_dataset_or_orbit(cgv::gui::control<bool>& in) {
