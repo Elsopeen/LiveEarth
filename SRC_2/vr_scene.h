@@ -10,6 +10,7 @@
 #include <cgv/defines/quote.h>
 #include <cgv/gui/trigger.h>
 #include <chrono>
+#include <thread>
 
 #include "lib_begin.h"
 #include "orbittools/coreLib.h"
@@ -69,6 +70,7 @@ namespace vr {
 		std::map<string, cgv::render::sphere_render_style> sat_styles;
 		cgv::render::sphere_render_style ptx_style;
 		std::vector<vec3> all_colors_sat;
+		std::deque<map<string, vec3>> pos_queue;
 		std::map<string,vec3> all_pos_sat_start;
 		std::map<string, vec3> all_pos_sat_mid;
 		std::map<string,vec3> all_pos_sat_end;
@@ -100,6 +102,7 @@ namespace vr {
 		int incr;
 		bool forback; //false forward true backward
 		bool is_active;
+		deque<time_t> time_queue;
 		time_t visual_now;
 		time_t start_time;
 		time_t mid_time;
@@ -194,10 +197,14 @@ namespace vr {
 		bool handle(cgv::gui::event& e);
 		/// Calculate and store the positions for the orbits and satellites
 		void calculate_positions_and_orbits();
+		/// Calculate and store the positions for the orbits and satellites
+		void calculate_positions_and_orbits_queue();
 		/// Calculate the name of the closest satellite to the cursor
 		string intersection(vec3 origin, vec3 direction);
 		/// Changes the time to allow the animation
 		void change_time(double, double dt);
+		/// Changes the time to allow the animation
+		void change_time_queue(double, double dt);
 		/// starts the animation
 		void start_anim(cgv::gui::button&);
 		/// stops the animation
