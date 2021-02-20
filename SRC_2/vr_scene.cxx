@@ -529,6 +529,7 @@ namespace vr {
 	}
 
 	void vr_scene::calculate_positions_and_orbits() {
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		all_pos_sat_start.clear();
 		all_pos_sat_interp.clear();
 		all_pos_sat_mid.clear();
@@ -671,6 +672,10 @@ namespace vr {
 		lm.update_label_size(listing_datasets_label, -1, -1); //update size as list grows
 		lm.update_label_text(listing_orbits_label, "Orbits: " + orbits_label);
 		lm.update_label_size(listing_orbits_label, -1, -1); //update size as list grows
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+
+		cout << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << endl;
 
 	}
 

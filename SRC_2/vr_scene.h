@@ -9,6 +9,7 @@
 #include "label_manager.h"
 #include <cgv/defines/quote.h>
 #include <cgv/gui/trigger.h>
+#include <chrono>
 
 #include "lib_begin.h"
 #include "orbittools/coreLib.h"
