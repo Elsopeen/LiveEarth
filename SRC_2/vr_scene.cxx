@@ -996,6 +996,7 @@ namespace vr {
 		}
 	}
 	*/
+
 	void vr_scene::change_time_queue(double, double dt) {
 		if (!forback) {
 			visual_now += 10;
@@ -1009,9 +1010,9 @@ namespace vr {
 				anim_thread.join();
 			}
 			if (!forback)
-				anim_thread = thread(&state_queue::calculate_positions_at, ref(*this), visual_now + 450);
+				anim_thread = launch_new_thread(*this, visual_now + 450);
 			else
-				anim_thread = thread(&state_queue::calculate_positions_at, ref(*this), visual_now - 450);
+				anim_thread = launch_new_thread(*this, visual_now - 450);
 			//thread calc_thread(&vr_scene::calculate_positions_and_orbits_queue, NULL);
 		}
 		/*all_pos_sat_interp.clear();

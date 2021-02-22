@@ -129,6 +129,7 @@ namespace vr {
 		bool forback; //false forward true backward
 		bool is_active;
 		thread anim_thread;
+		thread launch_new_thread(vr_scene& obj, time_t tmp) { return thread(&state_queue::calculate_positions_at, this, ref(obj), ref(tmp)); };
 		time_t visual_now;
 		time_t start_time;
 		time_t mid_time;
