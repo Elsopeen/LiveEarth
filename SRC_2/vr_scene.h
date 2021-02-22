@@ -76,6 +76,32 @@ namespace vr {
 		std::map<string,vec3> all_pos_sat_end;
 		std::map<string, vec3> all_pos_sat_interp;
 
+
+		class satellite_state
+		{
+		public:
+			time_t timestamp;
+			map<string, vec3> satellite_positions;
+			vector<vec3> orbits;
+			vector<vec3> all_colors_orbit;
+			vector<vec3> all_colors_sat;
+		};
+
+		class state_queue {
+		public:
+			deque<satellite_state> states;
+
+			void calculate_positions_at(vr_scene& obj, time_t timestamp);
+			map<string, vec3> interpolate_at(vr_scene& obj, time_t temp_now);
+			void remove_oldest_state();
+			const vector<vec3> orbits() { return states[0].orbits; };
+			const vector<vec3> col_orbits() { return states[0].all_colors_orbit; };
+			const vector<vec3> col_sats() { return states[0].all_colors_sat; };
+			void clear() { states.clear(); };
+		};
+
+		state_queue sat_queue;
+
 		/// Satellites storing variables
 		std::map<string, bool> actives;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
@@ -102,7 +128,7 @@ namespace vr {
 		int incr;
 		bool forback; //false forward true backward
 		bool is_active;
-		deque<time_t> time_queue;
+		thread anim_thread;
 		time_t visual_now;
 		time_t start_time;
 		time_t mid_time;
@@ -196,13 +222,13 @@ namespace vr {
 		/// handle events
 		bool handle(cgv::gui::event& e);
 		/// Calculate and store the positions for the orbits and satellites
-		void calculate_positions_and_orbits();
+		//void calculate_positions_and_orbits();
 		/// Calculate and store the positions for the orbits and satellites
-		void calculate_positions_and_orbits_queue();
+		//void calculate_positions_and_orbits_queue();
 		/// Calculate the name of the closest satellite to the cursor
 		string intersection(vec3 origin, vec3 direction);
 		/// Changes the time to allow the animation
-		void change_time(double, double dt);
+		//void change_time(double, double dt);
 		/// Changes the time to allow the animation
 		void change_time_queue(double, double dt);
 		/// starts the animation
