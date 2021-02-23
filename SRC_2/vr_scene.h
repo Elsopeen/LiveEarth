@@ -91,8 +91,8 @@ namespace vr {
 		public:
 			deque<satellite_state> states;
 
-			void calculate_positions_at(vr_scene& obj, time_t timestamp);
-			map<string, vec3> interpolate_at(vr_scene& obj, time_t temp_now);
+			void calculate_positions_at(vr_scene* obj, time_t timestamp);
+			map<string, vec3> interpolate_at(vr_scene* obj, time_t temp_now);
 			void remove_oldest_state();
 			const vector<vec3> orbits() { return states[0].orbits; };
 			const vector<vec3> col_orbits() { return states[0].all_colors_orbit; };
@@ -129,7 +129,14 @@ namespace vr {
 		bool forback; //false forward true backward
 		bool is_active;
 		thread anim_thread;
-		thread launch_new_thread(vr_scene& obj, time_t tmp) { return thread(&state_queue::calculate_positions_at, this, ref(obj), ref(tmp)); };
+		thread launch_new_thread(time_t tmp) {
+			return thread(
+				[&] (state_queue* queue, vr_scene* scene, time_t tmp_t) { 
+					queue->calculate_positions_at(scene, tmp_t); 
+				}, 
+				&sat_queue, this, tmp);
+		};
+
 		time_t visual_now;
 		time_t start_time;
 		time_t mid_time;
