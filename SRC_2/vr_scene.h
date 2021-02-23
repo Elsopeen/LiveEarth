@@ -63,17 +63,10 @@ namespace vr {
 		/// Orbit rendering variables
 		cgv::render::rounded_cone_render_style orbit_style;
 		std::map<string, cgv::render::rounded_cone_render_style> orbit_styles;
-		std::vector<vec3> all_pos_orbit;
-		std::vector<vec3> all_colors_orbit;
 
 		/// Satellites rendering variables
 		std::map<string, cgv::render::sphere_render_style> sat_styles;
 		cgv::render::sphere_render_style ptx_style;
-		std::vector<vec3> all_colors_sat;
-		std::deque<map<string, vec3>> pos_queue;
-		std::map<string,vec3> all_pos_sat_start;
-		std::map<string, vec3> all_pos_sat_mid;
-		std::map<string,vec3> all_pos_sat_end;
 		std::map<string, vec3> all_pos_sat_interp;
 
 
@@ -105,7 +98,6 @@ namespace vr {
 		/// Satellites storing variables
 		std::map<string, bool> actives;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
-		std::map<string, vec3> names_plus_pos;
 
 		/// labels for the selected satellites
 		std::map<string, uint32_t> li_sat;
@@ -138,9 +130,6 @@ namespace vr {
 		};
 
 		time_t visual_now;
-		time_t start_time;
-		time_t mid_time;
-		time_t end_time;
 		time_t v_min_2, v_plus_2;
 
 		//@}
@@ -229,14 +218,10 @@ namespace vr {
 		void stream_help(std::ostream& os);
 		/// handle events
 		bool handle(cgv::gui::event& e);
-		/// Calculate and store the positions for the orbits and satellites
-		//void calculate_positions_and_orbits();
-		/// Calculate and store the positions for the orbits and satellites
-		//void calculate_positions_and_orbits_queue();
 		/// Calculate the name of the closest satellite to the cursor
 		string intersection(vec3 origin, vec3 direction);
-		/// Changes the time to allow the animation
-		//void change_time(double, double dt);
+		/// calculate labels
+		void fill_labels();
 		/// Changes the time to allow the animation
 		void change_time_queue(double, double dt);
 		/// starts the animation
