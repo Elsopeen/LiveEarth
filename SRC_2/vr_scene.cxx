@@ -263,6 +263,8 @@ namespace vr {
 
 	void vr_scene::init_frame(cgv::render::context& ctx)
 	{
+		if (li_sat.size() == 0)
+			fill_labels();
 		bool repack = lm.is_packing_outofdate();
 		lm.ensure_texture_uptodate(ctx);
 		if (repack) {
@@ -278,11 +280,9 @@ namespace vr {
 		//update directions of labels
 		place_label(listing_datasets_label, vec3(0, 2, 0), quat_total, CS_LAB, LA_CENTER);
 		place_label(listing_orbits_label, vec3(0, 1.75, 0), quat_total, CS_LAB, LA_CENTER);
-		if (li_sat.size() == 0)
-			fill_labels();
 		for (auto entry : li_sat) { //update for sat labels only if shown
-			if (label_visibilities[entry.second]) {
-				place_label(li_sat.at(entry.first), all_pos_sat_interp.at(entry.first) + vec3(0, 0.03, 0), quat_total, CS_LAB, LA_CENTER);
+			if (label_visibilities[entry.first]) {
+				place_label(entry.first, all_pos_sat_interp.at(entry.second) + vec3(0, 0.03, 0), quat_total, CS_LAB, LA_CENTER);
 			}
 		}
 
@@ -514,11 +514,9 @@ namespace vr {
 										j->second[i].second = true;
 										sat_queue.clear();
 										sat_queue.calculate_positions_at(this, visual_now);
-										show_label(li_sat.at(res[0] + "*&_" + res[1]));
 									}
 									else if (grabber_throttle_2 == 2 && (j->second[i].second)) { //grip pressed and already selected
 										j->second[i].second = false;
-										hide_label(li_sat.at(res[0] + "*&_" + res[1]));
 										sat_queue.clear();
 										sat_queue.calculate_positions_at(this, visual_now);
 									}
@@ -544,10 +542,18 @@ namespace vr {
 		state.orbits.clear();
 		state.satellite_positions.clear();
 
-		for (auto entry : obj->li_sat) {
-			obj->label_visibilities[entry.second] = false;
+		for (auto entry = obj->li_sat.rbegin(); entry != obj->li_sat.rend();entry++) {
+			obj->label_visibilities[entry->first] = false;
+			obj->lm.remove_label(entry->first);
+			obj->label_positions.erase(obj->label_positions.begin()+entry->first);
+			obj->label_orientations.erase(obj->label_orientations.begin()+entry->first);
+			obj->label_extents.erase(obj->label_extents.begin()+entry->first);
+			obj->label_texture_ranges.erase(obj->label_texture_ranges.begin() + entry->first);
+			obj->label_visibilities.erase(obj->label_visibilities.begin() + entry->first);
+			obj->label_coord_systems.erase(obj->label_coord_systems.begin() + entry->first);
 		}
 		obj->li_sat.clear();
+		obj->lm.pack_labels();
 		string datasets_label = "";
 		string orbits_label = "";
 		int cptdat = 0;
@@ -1012,11 +1018,11 @@ namespace vr {
 				for (auto entry : satellites.at(dataset_entry.first)) {
 					string full_name = dataset_entry.first + "*&_" + entry.first.Orbit().SatId();
 					auto col = sat_styles.at(dataset_entry.first).surface_color;
-					li_sat.insert(pair<string, uint32_t>(full_name,
-						add_label("Dataset : "+dataset_entry.first+"\nSatellite : "+entry.first.Name(), rgba(col.R(), col.G(), col.B(), 1))));
-					fix_label_size(li_sat.at(full_name));
+					uint32_t lab = add_label("Dataset : " + dataset_entry.first + "\nSatellite : " + entry.first.Name(), rgba(col.R(), col.G(), col.B(), 1));
+					li_sat.insert(pair<uint32_t, string>(lab,full_name));
+					fix_label_size(lab);
 					if (!entry.second) {
-						hide_label(li_sat.at(full_name));
+						hide_label(lab);
 					}
 				}
 			}
@@ -1030,8 +1036,8 @@ namespace vr {
 		else {
 			visual_now -= incr;
 		}
-		if ((!forback && visual_now == sat_queue.states[1].timestamp - 200)
-			|| (forback && visual_now == sat_queue.states[1].timestamp + 200)) {
+		if (!calculated && ((!forback && visual_now >= sat_queue.states[1].timestamp - 200 && visual_now < sat_queue.states[1].timestamp)
+			|| (forback && visual_now <= sat_queue.states[1].timestamp + 200 && visual_now > sat_queue.states[1].timestamp))) {
 			if (anim_thread.joinable()) {
 				anim_thread.join();
 			}
@@ -1039,10 +1045,13 @@ namespace vr {
 				anim_thread = launch_new_thread(sat_queue.states.back().timestamp + 450);
 			else
 				anim_thread = launch_new_thread(sat_queue.states.back().timestamp - 450);
+			calculated = true;
 			//thread calc_thread(&vr_scene::calculate_positions_and_orbits_queue, NULL);
 		}
-		if (visual_now == sat_queue.states[1].timestamp) {
+		if ((!forback && visual_now >= sat_queue.states[1].timestamp)
+			|| (forback && visual_now <= sat_queue.states[1].timestamp)) {
 			sat_queue.remove_oldest_state();
+			calculated = false;
 		}
 		/*all_pos_sat_interp.clear();
 		for (auto i = pos_queue[0].begin(); i != pos_queue[0].end(); i++) {

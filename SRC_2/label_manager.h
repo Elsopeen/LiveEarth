@@ -107,6 +107,8 @@ namespace vr {
 		uint32_t get_nr_labels() const { return uint32_t(labels.size()); }
 		/// return specific label
 		const label& get_label(uint32_t i) const { return labels[i]; }
+
+		void remove_label(uint32_t i) { labels.erase(labels.begin() + i); label_states.erase(label_states.begin() + i); }
 		//! update text of given label 
 		/*! if label is not a fixed label set packing out of date otherwise
 			only texture computation is set out of date */

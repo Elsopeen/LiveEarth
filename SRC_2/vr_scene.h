@@ -96,11 +96,12 @@ namespace vr {
 		state_queue sat_queue;
 
 		/// Satellites storing variables
+		bool is_active;
 		std::map<string, bool> actives;
 		std::map<string, std::vector<pair<cSatellite, bool>>> satellites;
 
 		/// labels for the selected satellites
-		std::map<string, uint32_t> li_sat;
+		std::map<uint32_t, string> li_sat;
 		uint32_t listing_datasets_label;
 		uint32_t listing_orbits_label;
 
@@ -119,12 +120,14 @@ namespace vr {
 		cgv::gui::trigger trig;
 		int incr;
 		bool forback; //false forward true backward
-		bool is_active;
+		bool calculated; //if the new point has been calculated or not
 		thread anim_thread;
 		thread launch_new_thread(time_t tmp) {
 			return thread(
 				[&] (state_queue* queue, vr_scene* scene, time_t tmp_t) { 
 					queue->calculate_positions_at(scene, tmp_t); 
+					if(scene->li_sat.size()==0)
+						scene->fill_labels();
 				}, 
 				&sat_queue, this, tmp);
 		};
@@ -149,7 +152,7 @@ namespace vr {
 		std::vector<bool> label_visibilities;
 
 		/// for rectangle renderer a plane_render_style is needed
-		cgv::render::plane_render_style prs;
+		cgv::render::rectangle_render_style prs;
 	public:
 		/// different coordinate systems used to place labels
 		enum CoordinateSystem
