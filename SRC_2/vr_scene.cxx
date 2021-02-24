@@ -378,7 +378,8 @@ namespace vr {
 			orbit.draw(ctx, 0, sat_queue.orbits().size());
 			orbit.disable(ctx);
 		}
-		all_pos_sat_interp = sat_queue.interpolate_at(this, visual_now);
+		if(trig.is_scheduled())
+			all_pos_sat_interp = sat_queue.interpolate_at(this, visual_now);
 		if (all_pos_sat_interp.size() != 0) { //position only
 			auto& ptx = cgv::render::ref_sphere_renderer(ctx);
 			ptx.set_render_style(ptx_style);
@@ -587,20 +588,17 @@ namespace vr {
 							//std::cout << t << std::endl;
 							cVector v;
 							try {
-
+								auto col = obj->orbit_styles.at(datasets_entry.first).surface_color;
 								v = sat_entry.first.PositionEci(sat_entry.first.Orbit().Epoch().SpanMin(cJulian(min_one_rev + t))).Position();
 								if (t == 0 || t == (timestamp - min_one_rev - 1)) {
 									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
-									col_pos.push_back(vec3(obj->orbit_styles.at(datasets_entry.first).surface_color.R(), obj->orbit_styles.at(datasets_entry.first).surface_color.G(),
-										obj->orbit_styles.at(datasets_entry.first).surface_color.B()));
+									col_pos.push_back(vec3(col.R(), col.G(), col.B()));
 								}
 								else {
 									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
 									pos.push_back(vec3(v.m_x / (2.F * 6378), 1.0F + v.m_z / (2.F * 6378), v.m_y / (2.F * 6378)));
-									col_pos.push_back(vec3(obj->orbit_styles.at(datasets_entry.first).surface_color.R(), obj->orbit_styles.at(datasets_entry.first).surface_color.G(),
-										obj->orbit_styles.at(datasets_entry.first).surface_color.B()));
-									col_pos.push_back(vec3(obj->orbit_styles.at(datasets_entry.first).surface_color.R(), obj->orbit_styles.at(datasets_entry.first).surface_color.G(),
-										obj->orbit_styles.at(datasets_entry.first).surface_color.B()));
+									col_pos.push_back(vec3(col.R(), col.G(), col.B()));
+									col_pos.push_back(vec3(col.R(), col.G(), col.B()));
 								}
 
 							}
@@ -995,16 +993,20 @@ namespace vr {
 					uint32_t lab = add_label("Dataset : " + dataset_entry.first + "\nSatellite : " + entry.first.Name(), rgba(col.R(), col.G(), col.B(), 1));
 					li_sat.insert(pair<uint32_t, string>(lab,full_name));
 					fix_label_size(lab);
-					if (cptor % 3 == 0) {
-						orbits_label += entry.first.Name() + ", \n";
-						cptor++;
-					}
-					else {
-						orbits_label += entry.first.Name() + ", ";
-						cptor++;
-					}
+					
 					if (!entry.second) {
 						hide_label(lab);
+					}
+					else {
+						if (cptor % 3 == 0) {
+							orbits_label += entry.first.Name() + ", \n";
+							cptor++;
+						}
+						else {
+							orbits_label += entry.first.Name() + ", ";
+							cptor++;
+						}
+
 					}
 				}
 			}
@@ -1062,7 +1064,7 @@ namespace vr {
 	}
 
 	void vr_scene::forback_anim(cgv::gui::button&) {
-		bool recur = trig.is_recuring();
+		bool recur = trig.is_scheduled();
 		if (recur) //if the animation was running
 			trig.stop();
 		forback = !forback;
@@ -1073,7 +1075,7 @@ namespace vr {
 	}
 
 	void vr_scene::activate_dataset_or_orbit(cgv::gui::control<bool>& in) {
-		bool recur = trig.is_recuring();
+		bool recur = trig.is_scheduled();
 		if (recur) //if the animation was running
 			trig.stop();
 		in.set_new_value(!in.get_value());
@@ -1089,9 +1091,9 @@ namespace vr {
 		}
 		li_sat.clear();
 		fill_labels();
-		lm.pack_labels();
 		sat_queue.clear();
 		sat_queue.calculate_positions_at(this, visual_now);
+		all_pos_sat_interp = sat_queue.interpolate_at(this, visual_now);
 		if (recur) //if the animation was running
 			trig.schedule_recuring(1.F / 60.F);
 	}
