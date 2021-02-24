@@ -263,8 +263,6 @@ namespace vr {
 
 	void vr_scene::init_frame(cgv::render::context& ctx)
 	{
-		if (li_sat.size() == 0)
-			fill_labels();
 		bool repack = lm.is_packing_outofdate();
 		lm.ensure_texture_uptodate(ctx);
 		if (repack) {
@@ -542,33 +540,8 @@ namespace vr {
 		state.orbits.clear();
 		state.satellite_positions.clear();
 
-		for (auto entry = obj->li_sat.rbegin(); entry != obj->li_sat.rend();entry++) {
-			obj->label_visibilities[entry->first] = false;
-			obj->lm.remove_label(entry->first);
-			obj->label_positions.erase(obj->label_positions.begin()+entry->first);
-			obj->label_orientations.erase(obj->label_orientations.begin()+entry->first);
-			obj->label_extents.erase(obj->label_extents.begin()+entry->first);
-			obj->label_texture_ranges.erase(obj->label_texture_ranges.begin() + entry->first);
-			obj->label_visibilities.erase(obj->label_visibilities.begin() + entry->first);
-			obj->label_coord_systems.erase(obj->label_coord_systems.begin() + entry->first);
-		}
-		obj->li_sat.clear();
-		obj->lm.pack_labels();
-		string datasets_label = "";
-		string orbits_label = "";
-		int cptdat = 0;
-		int cptor = 0;
 		for (auto datasets_entry : obj->actives) {
 			if (datasets_entry.second) {
-				if (cptdat % 3 == 0) {
-					datasets_label += datasets_entry.first + ", \n";
-					cptdat++;
-				}
-				else {
-					datasets_label += datasets_entry.first + ", ";
-					cptdat++;
-				}
-
 				auto sats = obj->satellites.at(datasets_entry.first);
 				for (auto sat_entry : sats) {
 					string full_name = datasets_entry.first + "*&_" + sat_entry.first.Orbit().SatId();
@@ -600,14 +573,6 @@ namespace vr {
 					if (sat_entry.second) {
 						std::vector<vec3> pos = std::vector<vec3>();
 						double rev_time = (1.0 / sat_entry.first.Orbit().MeanMotion()) * (2 * M_PI) * 60;
-						if (cptor % 3 == 0) {
-							orbits_label += sat_entry.first.Name() + ", \n";
-							cptor++;
-						}
-						else {
-							orbits_label += sat_entry.first.Name() + ", ";
-							cptor++;
-						}
 						/**
 						* Calculation of one revolution orbit
 						*/
@@ -661,10 +626,6 @@ namespace vr {
 			}
 
 		}
-		obj->lm.update_label_text(obj->listing_datasets_label, "Datasets: " + datasets_label);
-		obj->lm.update_label_size(obj->listing_datasets_label, -1, -1); //update size as list grows
-		obj->lm.update_label_text(obj->listing_orbits_label, "Orbits: " + orbits_label);
-		obj->lm.update_label_size(obj->listing_orbits_label, -1, -1); //update size as list grows
 
 		states.push_back(state);
 	}
@@ -1013,20 +974,46 @@ namespace vr {
 
 	void vr_scene::fill_labels()
 	{
+		string datasets_label = "";
+		string orbits_label = "";
+		int cptdat = 0;
+		int cptor = 0;
 		for (auto dataset_entry : actives) {
 			if (dataset_entry.second) {
+				if (cptdat % 3 == 0) {
+					datasets_label += dataset_entry.first + ", \n";
+					cptdat++;
+				}
+				else {
+					datasets_label += dataset_entry.first + ", ";
+					cptdat++;
+				}
+
 				for (auto entry : satellites.at(dataset_entry.first)) {
 					string full_name = dataset_entry.first + "*&_" + entry.first.Orbit().SatId();
 					auto col = sat_styles.at(dataset_entry.first).surface_color;
 					uint32_t lab = add_label("Dataset : " + dataset_entry.first + "\nSatellite : " + entry.first.Name(), rgba(col.R(), col.G(), col.B(), 1));
 					li_sat.insert(pair<uint32_t, string>(lab,full_name));
 					fix_label_size(lab);
+					if (cptor % 3 == 0) {
+						orbits_label += entry.first.Name() + ", \n";
+						cptor++;
+					}
+					else {
+						orbits_label += entry.first.Name() + ", ";
+						cptor++;
+					}
 					if (!entry.second) {
 						hide_label(lab);
 					}
 				}
 			}
 		}
+
+		lm.update_label_text(listing_datasets_label, "Datasets: " + datasets_label);
+		lm.update_label_size(listing_datasets_label, -1, -1); //update size as list grows
+		lm.update_label_text(listing_orbits_label, "Orbits: " + orbits_label);
+		lm.update_label_size(listing_orbits_label, -1, -1); //update size as list grows
 	}
 
 	void vr_scene::change_time_queue(double, double dt) {
@@ -1090,6 +1077,19 @@ namespace vr {
 		if (recur) //if the animation was running
 			trig.stop();
 		in.set_new_value(!in.get_value());
+		for (auto entry = li_sat.rbegin(); entry != li_sat.rend(); entry++) {
+			label_visibilities[entry->first] = false;
+			lm.remove_label(entry->first);
+			label_positions.erase(label_positions.begin() + entry->first);
+			label_orientations.erase(label_orientations.begin() + entry->first);
+			label_extents.erase(label_extents.begin() + entry->first);
+			label_texture_ranges.erase(label_texture_ranges.begin() + entry->first);
+			label_visibilities.erase(label_visibilities.begin() + entry->first);
+			label_coord_systems.erase(label_coord_systems.begin() + entry->first);
+		}
+		li_sat.clear();
+		fill_labels();
+		lm.pack_labels();
 		sat_queue.clear();
 		sat_queue.calculate_positions_at(this, visual_now);
 		if (recur) //if the animation was running

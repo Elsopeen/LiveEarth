@@ -125,9 +125,7 @@ namespace vr {
 		thread launch_new_thread(time_t tmp) {
 			return thread(
 				[&] (state_queue* queue, vr_scene* scene, time_t tmp_t) { 
-					queue->calculate_positions_at(scene, tmp_t); 
-					if(scene->li_sat.size()==0)
-						scene->fill_labels();
+					queue->calculate_positions_at(scene, tmp_t);
 				}, 
 				&sat_queue, this, tmp);
 		};
